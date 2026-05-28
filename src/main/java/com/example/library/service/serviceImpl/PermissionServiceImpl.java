@@ -170,4 +170,22 @@ public class PermissionServiceImpl implements PermissionService {
         workbook.close();
         outputStream.flush();
     }
+
+    @Override
+    public void export(PermissionPageRequest request, HttpServletResponse response) throws IOException {
+        List<Permission> listExport = permissionRepository.searchExport(request.getCode(), request.getName(), request.getStatus());
+        ExcelUtils.writeWithTemplate(
+                response,
+                TEMPLATE_PERMISSION,
+                "Export_permission",
+                listExport,
+                permission -> List.of(
+                        permission.getCode(),
+                        permission.getName(),
+                        permission.getDescription(),
+                        permission.getStatus()
+                ),
+                1
+        );
+    }
 }

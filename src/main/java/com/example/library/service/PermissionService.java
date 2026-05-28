@@ -17,4 +17,5 @@ public interface PermissionService {
     ApiResponse<PageResponse<PermissionResponse>> search(PermissionPageRequest request);
     ApiResponse<ListResponse<PermissionResponse>> getAllStatusActive();
     void downloadTemplate(HttpServletResponse response) throws IOException;
+    void export(PermissionPageRequest request, HttpServletResponse response) throws IOException;
 }

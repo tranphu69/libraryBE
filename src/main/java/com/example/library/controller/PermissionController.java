@@ -52,4 +52,9 @@ public class PermissionController {
         response.setHeader("Content-Disposition", "attachment; filename=" + FILE_NAME);
         permissionService.downloadTemplate(response);
     }
+
+    @PostMapping("/export")
+    public void export(PermissionPageRequest request, HttpServletResponse response) throws IOException {
+        permissionService.export(request, response);
+    }
 }

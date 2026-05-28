@@ -30,6 +30,13 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>, J
             "AND (:name IS NULL OR :name = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
             "AND (:status IS NULL OR p.status = :status) " +
             "AND p.status <> -1")
+    List<Permission> searchExport(@Param("code") String code, @Param("name") String name, @Param("status") Long status);
+
+    @Query("SELECT p FROM Permission p " +
+            "WHERE (:code IS NULL OR :code = '' OR LOWER(p.code) LIKE LOWER(CONCAT('%', :code, '%'))) " +
+            "AND (:name IS NULL OR :name = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND (:status IS NULL OR p.status = :status) " +
+            "AND p.status <> -1")
     Page<Permission> search(@Param("code") String code, @Param("name") String name,
                             @Param("status") Long status, Pageable pageable);
 }
