@@ -22,6 +22,9 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>, J
 
     Optional<Permission> findByPublicId(String id);
 
+    @Query("SELECT p FROM Permission p WHERE p.status = 1")
+    List<Permission> getAllStatusActive();
+
     @Query("SELECT p FROM Permission p " +
             "WHERE (:code IS NULL OR :code = '' OR LOWER(p.code) LIKE LOWER(CONCAT('%', :code, '%'))) " +
             "AND (:name IS NULL OR :name = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +

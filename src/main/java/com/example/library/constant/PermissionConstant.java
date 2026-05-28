@@ -16,4 +16,11 @@ public class PermissionConstant {
     public static final Long ACTIVE = 1L;
     public static final Long INACTIVE = 0L;
     public static final Long DELETED = -1L;
+
+    public static final String UPDATED_AT = "updatedAt";
+    public static final String DESC = "DESC";
+
+    public static final int MAX_LENGTH_CODE = 100;
+    public static final int MAX_LENGTH_NAME = 255;
+    public static final int MAX_LENGTH_DESCRIPTION = 1000;
 }

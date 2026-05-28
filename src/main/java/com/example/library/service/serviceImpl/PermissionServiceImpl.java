@@ -5,10 +5,7 @@ import com.example.library.constant.PermissionConstant;
 import com.example.library.domain.Permission;
 import com.example.library.dto.request.PermissionPageRequest;
 import com.example.library.dto.request.PermissionRequest;
-import com.example.library.dto.response.ApiResponse;
-import com.example.library.dto.response.PageResponse;
-import com.example.library.dto.response.PaginationMeta;
-import com.example.library.dto.response.PermissionResponse;
+import com.example.library.dto.response.*;
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
 import com.example.library.exception.ResourceNotFoundException;
@@ -16,14 +13,21 @@ import com.example.library.mapper.PermissionMapper;
 import com.example.library.repository.PermissionRepository;
 import com.example.library.service.PermissionService;
 import com.example.library.util.DataUtils;
+import com.example.library.util.ExcelUtils;
 import com.example.library.util.ResponseUtils;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -33,25 +37,25 @@ import java.util.List;
 public class PermissionServiceImpl implements PermissionService {
     private final PermissionRepository permissionRepository;
     private final PermissionMapper permissionMapper;
-    private final int MAX_LENGTH_CODE = 100;
-    private final int MAX_LENGTH_NAME = 255;
-    private final int MAX_LENGTH_DESCRIPTION = 1000;
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
+    private final String TEMPLATE_PERMISSION = "template/Template_permission.xlsx";
 
     private void validate(PermissionRequest request, List<String> listPermissionDB) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, PermissionConstant.CODE);
-        } else if(DataUtils.maxLength(request.getCode(), MAX_LENGTH_CODE)) {
+        } else if(DataUtils.maxLength(request.getCode(), PermissionConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, PermissionConstant.CODE, PermissionConstant.CODE_LENGTH);
+        } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
+            throw new BusinessException(ErrorCode.CODE_CHARACTER, PermissionConstant.CODE);
         } else if(listPermissionDB.contains(request.getCode().trim())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, PermissionConstant.NAME);
-        } else if(DataUtils.maxLength(request.getName(), MAX_LENGTH_NAME)) {
+        } else if(DataUtils.maxLength(request.getName(), PermissionConstant.MAX_LENGTH_NAME)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, PermissionConstant.NAME, PermissionConstant.NAME_LENGTH);
         }
-        if(DataUtils.maxLengthNotEmpty(request.getDescription(), MAX_LENGTH_DESCRIPTION)) {
+        if(DataUtils.maxLengthNotEmpty(request.getDescription(), PermissionConstant.MAX_LENGTH_DESCRIPTION)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, PermissionConstant.DESCRIPTION, PermissionConstant.DESCRIPTION_LENGTH);
         }
         if(DataUtils.isNull(request.getStatus())) {
@@ -101,7 +105,7 @@ public class PermissionServiceImpl implements PermissionService {
         permission.setStatus(PermissionConstant.DELETED);
         permission.setUpdatedAt(LocalDateTime.now());
         permissionRepository.save(permission);
-        return ResponseUtils.success(null,AppConstant.SUCCESS);
+        return ResponseUtils.success(null, AppConstant.SUCCESS);
     }
 
     private void validateSearch(PermissionPageRequest request) {
@@ -112,10 +116,10 @@ public class PermissionServiceImpl implements PermissionService {
             request.setSize(10);
         }
         if(DataUtils.isBlank(request.getSortBy())) {
-            request.setSortBy("updatedAt");
+            request.setSortBy(PermissionConstant.UPDATED_AT);
         }
         if(DataUtils.isBlank(request.getSortDir())) {
-            request.setSortDir("DESC");
+            request.setSortDir(PermissionConstant.DESC);
         }
     }
 
@@ -126,8 +130,7 @@ public class PermissionServiceImpl implements PermissionService {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         Page<Permission> page = permissionRepository.search(request.getCode(), request.getName(), request.getStatus(), pageable);
         List<PermissionResponse> content = page.getContent().stream()
-                .map(permissionMapper::toPermissionResponse)
-                .toList();
+                .map(permissionMapper::toPermissionResponse).toList();
         PaginationMeta contentPage = PaginationMeta.builder()
                 .page(page.getNumber())
                 .size(page.getSize())
@@ -140,6 +143,31 @@ public class PermissionServiceImpl implements PermissionService {
                 .content(content)
                 .pagination(contentPage)
                 .build();
-        return ResponseUtils.success(result,AppConstant.SUCCESS);
+        return ResponseUtils.success(result, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public ApiResponse<ListResponse<PermissionResponse>> getAllStatusActive() {
+        List<Permission> listStatusActive = permissionRepository.getAllStatusActive();
+        List<PermissionResponse> content = listStatusActive.stream()
+                .map(permissionMapper::toPermissionResponse).toList();
+        ListResponse<PermissionResponse> result = ListResponse.<PermissionResponse>builder()
+                .content(content)
+                .total(content.size())
+                .build();
+        return ResponseUtils.success(result, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        ClassPathResource template = new ClassPathResource(TEMPLATE_PERMISSION);
+        XSSFWorkbook workbook = new XSSFWorkbook(template.getInputStream());
+        String[] names = {"0", "1"};
+        XSSFSheet sheet0 = workbook.getSheetAt(0);
+        ExcelUtils.addDropdownToColumn(workbook, sheet0, 3, names, 1, 1000);
+        ServletOutputStream outputStream = response.getOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+        outputStream.flush();
     }
 }
