@@ -9,6 +9,10 @@ public class DataUtils {
         return value == null;
     }
 
+    public static boolean isNull(Integer value) {
+        return value == null;
+    }
+
     public static boolean maxLengthNotEmpty(String value, int maxLength) {
         return value != null && value.trim().length() > maxLength;
     }

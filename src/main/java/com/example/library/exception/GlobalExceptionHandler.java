@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ex.getErrorCode();
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ResponseUtils.error(errorCode.getCode(), errorCode.getMessage()));
+                .body(ResponseUtils.error(errorCode.getCode(), ex.getFormattedMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -49,14 +49,14 @@ public class GlobalExceptionHandler {
 //        ));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ResponseUtils.error("500", "Lỗi hệ thống, vui lòng thử lại sau"));
-//        .body(ResponseUtils.error(
-//                ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
-//                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
-//        ));
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+//        return ResponseEntity
+//                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body(ResponseUtils.error("500", "Lỗi hệ thống, vui lòng thử lại sau"));
+////        .body(ResponseUtils.error(
+////                ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+////                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
+////        ));
+//    }
 }

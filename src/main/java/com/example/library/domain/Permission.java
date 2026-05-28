@@ -42,9 +42,5 @@ public class Permission {
         if (this.publicId == null) {
             this.publicId = UUID.randomUUID().toString();
         }
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-        this.updatedAt = LocalDateTime.now();
     }
 }

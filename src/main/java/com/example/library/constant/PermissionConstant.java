@@ -11,4 +11,9 @@ public class PermissionConstant {
     public static final String DESCRIPTION = "Mô tả";
     public static final String DESCRIPTION_LENGTH = "1000";
     public static final String STATUS = "Trạng thái";
+    public static final String PERMISSION = "Quyền";
+
+    public static final Long ACTIVE = 1L;
+    public static final Long INACTIVE = 0L;
+    public static final Long DELETED = -1L;
 }
