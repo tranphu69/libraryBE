@@ -18,9 +18,8 @@ import java.util.List;
 import java.util.function.Function;
 
 public class ExcelUtils {
-    public static void addDropdownToColumn(XSSFWorkbook workbook, XSSFSheet sheet,
-                                           int columnIndex, String[] values,
-                                           int firstRow, int lastRow) {
+    public static void addDropdownToColumn(XSSFWorkbook workbook, XSSFSheet sheet, int columnIndex,
+                                           String[] values, int firstRow, int lastRow) {
         XSSFSheet hiddenSheet = workbook.createSheet("HiddenData");
         workbook.setSheetHidden(workbook.getSheetIndex(hiddenSheet), true);
         for (int i = 0; i < values.length; i++) {
