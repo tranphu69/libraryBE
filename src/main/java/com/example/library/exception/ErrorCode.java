@@ -11,7 +11,13 @@ public enum ErrorCode {
     NOT_VALID("E03", "Giá trị {0} không hợp lệ!"),
     NOT_DUPLICATE("E04", "{0} không được trùng nhau!"),
     NOT_EXIST("E05", "{0} không tồn tại!"),
-    CODE_CHARACTER("E06", "{0} chỉ được chứa chữ, số và dấu '_'!")
+    CODE_CHARACTER("E06", "{0} chỉ được chứa chữ, số và dấu '_'!"),
+    NOT_FILE("E07", "Tệp không được để trống!"),
+    OVER_CAPACITY("E08", "Vui lòng tải lên tệp nhỏ hơn {0}MB!"),
+    NOT_FORMAT_FILE("E09", "Tệp không đúng định dạng!"),
+    FILE_READ_ERROR("E10", "Tệp đang lỗi không thể mở được!"),
+    CHECK_TEMPLATE("E11", "Tệp hiện tại đang không giống với tệp mẫu vui lòng tải lại!"),
+    NOT_DUPLICATE_DB("E12", "Dữ liệu không được trùng nhau trong database!")
     ;
     private final String code;
     private final String message;

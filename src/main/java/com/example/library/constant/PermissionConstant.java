@@ -23,4 +23,6 @@ public class PermissionConstant {
     public static final int MAX_LENGTH_CODE = 100;
     public static final int MAX_LENGTH_NAME = 255;
     public static final int MAX_LENGTH_DESCRIPTION = 1000;
+
+    public static final long MAX_FILE_SIZE = 1024 * 1024;
 }

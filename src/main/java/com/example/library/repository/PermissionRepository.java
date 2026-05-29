@@ -11,14 +11,15 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface PermissionRepository extends JpaRepository<Permission, Long>, JpaSpecificationExecutor<Permission> {
     @Query("SELECT p.code FROM Permission p WHERE p.status <> -1 ")
-    List<String> findAllCodes();
+    Set<String> findAllCodes();
 
     @Query("SELECT p.code FROM Permission p WHERE p.status <> -1 AND p.publicId <> :id")
-    List<String> findAllCodesOtherPublicId(String id);
+    Set<String> findAllCodesOtherPublicId(String id);
 
     Optional<Permission> findByPublicId(String id);
 

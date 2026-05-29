@@ -9,8 +9,11 @@ import com.example.library.dto.response.PermissionResponse;
 import com.example.library.service.PermissionService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -56,5 +59,16 @@ public class PermissionController {
     @PostMapping("/export")
     public void export(PermissionPageRequest request, HttpServletResponse response) throws IOException {
         permissionService.export(request, response);
+    }
+
+    @PostMapping("/import")
+    public ResponseEntity<Object> importFile(@RequestParam MultipartFile file) {
+        byte[] errorFile = permissionService.importFile(file);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=IMPORT_QUYEN_KET_QUA.xlsx")
+                .header("Access-Control-Expose-Headers", "Content-Disposition")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(errorFile);
     }
 }

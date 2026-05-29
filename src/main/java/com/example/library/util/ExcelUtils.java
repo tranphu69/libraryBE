@@ -1,5 +1,7 @@
 package com.example.library.util;
 
+import com.example.library.exception.BusinessException;
+import com.example.library.exception.ErrorCode;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.ss.usermodel.*;
@@ -8,16 +10,73 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ExcelUtils {
+    public static boolean hasExcelFormat(MultipartFile file) {
+        return Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xls") ||
+                file.getOriginalFilename().endsWith(".xlsx");
+    }
+
+    public static String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        DataFormatter formatter = new DataFormatter();
+        return formatter.formatCellValue(cell).trim();
+    }
+
+    public static List<String> extractHeaders(InputStream is) {
+        try (Workbook workbook = WorkbookFactory.create(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null) {
+                throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+            }
+            List<String> headers = new ArrayList<>();
+            for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                Cell cell = headerRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                headers.add(getCellValue(cell).trim());
+            }
+            return headers;
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
+        }
+    }
+
+    public static String normalize(String value) {
+        return value == null ? "" : value.trim().replaceAll("\\s+", "").toLowerCase();
+    }
+
+    public static void validateHeaders(List<String> templateHeaders, List<String> uploadHeaders) {
+        if (templateHeaders.size() != uploadHeaders.size()) {
+            throw new BusinessException(ErrorCode.CHECK_TEMPLATE);
+        }
+        for (int i = 0; i < templateHeaders.size(); i++) {
+            if (!normalize(templateHeaders.get(i)).equals(normalize(uploadHeaders.get(i)))) {
+                throw new BusinessException(ErrorCode.CHECK_TEMPLATE);
+            }
+        }
+    }
+
+    public static void validateHeaders(InputStream templateIs, InputStream uploadIs) {
+        try {
+            List<String> templateHeaders = extractHeaders(templateIs);
+            List<String> uploadHeaders = extractHeaders(uploadIs);
+            validateHeaders(templateHeaders, uploadHeaders);
+        } catch(Exception e) {
+            throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
+        }
+    }
+
     public static void addDropdownToColumn(XSSFWorkbook workbook, XSSFSheet sheet, int columnIndex,
                                            String[] values, int firstRow, int lastRow) {
         XSSFSheet hiddenSheet = workbook.createSheet("HiddenData");
@@ -37,7 +96,7 @@ public class ExcelUtils {
                 firstRow, lastRow, columnIndex, columnIndex);
         DataValidation dataValidation = validationHelper.createValidation(
                 constraint, addressList);
-        dataValidation.setSuppressDropDownArrow(true);
+        dataValidation.setSuppressDropDownArrow(false);
         dataValidation.setShowErrorBox(true);
         sheet.addValidationData(dataValidation);
     }

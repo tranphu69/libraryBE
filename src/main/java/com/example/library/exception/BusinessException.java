@@ -19,4 +19,9 @@ public class BusinessException extends RuntimeException {
         this.formattedMessage = errorCode.formatMessage(args);
     }
 
+    public BusinessException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode.getMessage(), cause);
+        this.errorCode = errorCode;
+        this.formattedMessage = errorCode.getMessage();
+    }
 }
