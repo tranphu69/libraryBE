@@ -180,9 +180,6 @@ public class PermissionServiceImpl implements PermissionService {
     public void downloadTemplate(HttpServletResponse response) throws IOException {
         ClassPathResource template = new ClassPathResource(TEMPLATE_PERMISSION);
         XSSFWorkbook workbook = new XSSFWorkbook(template.getInputStream());
-        String[] names = {"0", "1"};
-        XSSFSheet sheet0 = workbook.getSheetAt(0);
-        ExcelUtils.addDropdownToColumn(workbook, sheet0, 3, names, 1, 1000);
         ServletOutputStream outputStream = response.getOutputStream();
         workbook.write(outputStream);
         workbook.close();
