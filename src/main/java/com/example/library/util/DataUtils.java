@@ -3,6 +3,7 @@ package com.example.library.util;
 import com.example.library.exception.ErrorCode;
 
 import java.text.MessageFormat;
+import java.util.Collection;
 
 public class DataUtils {
     public static boolean isBlank(String value) {
@@ -27,6 +28,10 @@ public class DataUtils {
 
     public static String strConcatenation(ErrorCode errorCode, Object... args) {
         return MessageFormat.format(errorCode.getMessage(), args);
+    }
+
+    public static boolean isEmptyList(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
     }
 
     public static boolean isNumber(String value) {

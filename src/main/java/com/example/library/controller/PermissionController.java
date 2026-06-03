@@ -22,7 +22,7 @@ import java.io.IOException;
 @RequestMapping("/api/permissions")
 public class PermissionController {
     private final PermissionService permissionService;
-    private static final String FILE_NAME  = "Template_permission.xlsx";
+    private static final String FILE_NAME = "Template_permission.xlsx";
 
     @PostMapping
     public ResponseEntity<ApiResponse<PermissionResponse>> create(@RequestBody PermissionRequest request) {

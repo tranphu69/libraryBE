@@ -11,6 +11,7 @@ import com.example.library.exception.ErrorCode;
 import com.example.library.exception.ResourceNotFoundException;
 import com.example.library.mapper.PermissionMapper;
 import com.example.library.repository.PermissionRepository;
+import com.example.library.repository.RoleRepository;
 import com.example.library.service.PermissionService;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ExcelUtils;
@@ -22,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
@@ -51,6 +51,7 @@ import java.util.Set;
 public class PermissionServiceImpl implements PermissionService {
     private final PermissionRepository permissionRepository;
     private final PermissionMapper permissionMapper;
+    private final RoleRepository roleRepository;
 
     @Lazy
     @Autowired
@@ -102,7 +103,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public ApiResponse<PermissionResponse> update(PermissionRequest request) {
-        Permission permission = permissionRepository.findByPublicId(request.getId())
+        Permission permission = permissionRepository.findByPublicIdAndStatusNot(request.getId(), PermissionConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, PermissionConstant.PERMISSION));
         Set<String> listPermissionDB = permissionRepository.findAllCodesOtherPublicId(request.getId());
         validate(request, listPermissionDB);
@@ -118,8 +119,11 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public ApiResponse<Void> delete(String id) {
-        Permission permission = permissionRepository.findByPublicId(id)
+        Permission permission = permissionRepository.findByPublicIdAndStatusNot(id, PermissionConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, PermissionConstant.PERMISSION));
+        if(roleRepository.existsByPermissionId(permission.getId())) {
+            throw new BusinessException(ErrorCode.NOT_DELETE, PermissionConstant.PERMISSION);
+        }
         permission.setStatus(PermissionConstant.DELETED);
         permission.setUpdatedAt(LocalDateTime.now());
         permissionRepository.save(permission);

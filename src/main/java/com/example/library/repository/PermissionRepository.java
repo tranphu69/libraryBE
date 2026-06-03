@@ -18,10 +18,13 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>, J
     @Query("SELECT p.code FROM Permission p WHERE p.status <> -1 ")
     Set<String> findAllCodes();
 
+    @Query("SELECT p.id FROM Permission p WHERE p.status <> -1 ")
+    Set<Long> findAllId();
+
     @Query("SELECT p.code FROM Permission p WHERE p.status <> -1 AND p.publicId <> :id")
     Set<String> findAllCodesOtherPublicId(String id);
 
-    Optional<Permission> findByPublicId(String id);
+    Optional<Permission> findByPublicIdAndStatusNot(String id, Long status);
 
     @Query("SELECT p FROM Permission p WHERE p.status = 1")
     List<Permission> getAllStatusActive();

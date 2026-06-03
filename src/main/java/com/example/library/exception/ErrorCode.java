@@ -17,7 +17,7 @@ public enum ErrorCode {
     NOT_FORMAT_FILE("E09", "Tệp không đúng định dạng!"),
     FILE_READ_ERROR("E10", "Tệp đang lỗi không thể mở được!"),
     CHECK_TEMPLATE("E11", "Tệp hiện tại đang không giống với tệp mẫu vui lòng tải lại!"),
-    NOT_DUPLICATE_DB("E12", "Dữ liệu không được trùng nhau trong database!")
+    NOT_DELETE("E12", "{0} đang được sử dụng không thể xóa!")
     ;
     private final String code;
     private final String message;
