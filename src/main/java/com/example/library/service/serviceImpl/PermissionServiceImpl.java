@@ -39,6 +39,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -169,11 +170,11 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public ApiResponse<ListResponse<PermissionResponse>> getAllStatusActive() {
+    public ApiResponse<ListResponse<SimpleResponse>> getAllStatusActive() {
         List<Permission> listStatusActive = permissionRepository.getAllStatusActive();
-        List<PermissionResponse> content = listStatusActive.stream()
-                .map(permissionMapper::toPermissionResponse).toList();
-        ListResponse<PermissionResponse> result = ListResponse.<PermissionResponse>builder()
+        List<SimpleResponse> content = listStatusActive.stream()
+                .map(permissionMapper::toSimpleResponse).toList();
+        ListResponse<SimpleResponse> result = ListResponse.<SimpleResponse>builder()
                 .content(content)
                 .total(content.size())
                 .build();
@@ -192,14 +193,21 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public void export(PermissionPageRequest request, HttpServletResponse response) throws IOException {
-        List<Permission> listExport = permissionRepository.searchExport(request.getCode(), request.getName(), request.getStatus());
-        ExcelUtils.writeWithTemplate(response, TEMPLATE_PERMISSION, "Export_permission", listExport,
-                permission -> List.of(
-                        permission.getCode(),
-                        permission.getName(),
-                        permission.getDescription(),
-                        permission.getStatus()
-                ), 1);
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=Export_permission_" + LocalDate.now() + ".xlsx");
+        ClassPathResource template = new ClassPathResource(TEMPLATE_PERMISSION);
+        try (Workbook workbook = new XSSFWorkbook(template.getInputStream());
+             ServletOutputStream out = response.getOutputStream()) {
+            List<Permission> listExport = permissionRepository.searchExport(request.getCode(), request.getName(), request.getStatus());
+            ExcelUtils.writeSheet(workbook, 0, listExport,
+                    permission -> List.of(
+                            permission.getCode(),
+                            permission.getName(),
+                            permission.getDescription(),
+                            permission.getStatus()
+                    ), 1);
+            workbook.write(out);
+        }
     }
 
     private void validateRowError(Set<String> listPermissionDB, List<String> errorMsg,

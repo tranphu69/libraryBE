@@ -2,10 +2,7 @@ package com.example.library.controller;
 
 import com.example.library.dto.request.PermissionPageRequest;
 import com.example.library.dto.request.PermissionRequest;
-import com.example.library.dto.response.ApiResponse;
-import com.example.library.dto.response.ListResponse;
-import com.example.library.dto.response.PageResponse;
-import com.example.library.dto.response.PermissionResponse;
+import com.example.library.dto.response.*;
 import com.example.library.service.PermissionService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +42,7 @@ public class PermissionController {
     }
 
     @GetMapping("/all-status-active")
-    public ResponseEntity<ApiResponse<ListResponse<PermissionResponse>>> statusActive() {
+    public ResponseEntity<ApiResponse<ListResponse<SimpleResponse>>> statusActive() {
         return ResponseEntity.ok(permissionService.getAllStatusActive());
     }
 

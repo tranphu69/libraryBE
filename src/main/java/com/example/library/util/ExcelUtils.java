@@ -95,24 +95,20 @@ public class ExcelUtils {
         }
     }
 
-    public static <T> void writeWithTemplate(HttpServletResponse response, String templatePath, String fileName,
-                                      List<T> data, Function<T, List<Object>> rowMapper, int startRow) throws IOException {
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=" + fileName + "_" + LocalDate.now() + ".xlsx");
-        try (InputStream template = ExcelUtils.class.getClassLoader().getResourceAsStream(templatePath)) {
-            assert template != null;
-            try (Workbook workbook = new XSSFWorkbook(template);
-                 ServletOutputStream out = response.getOutputStream()) {
-                Sheet sheet = workbook.getSheetAt(0);
-                int rowIndex = startRow;
-                for (T item : data) {
-                    Row row = sheet.createRow(rowIndex++);
-                    List<Object> values = rowMapper.apply(item);
-                    for (int i = 0; i < values.size(); i++) {
-                        setCellValue(row.createCell(i), values.get(i));
-                    }
-                }
-                workbook.write(out);
+    public static <T> void writeSheet(
+            Workbook workbook,
+            int sheetIndex,
+            List<T> data,
+            Function<T, List<Object>> rowMapper,
+            int startRow
+    ) {
+        Sheet sheet = workbook.getSheetAt(sheetIndex);
+        int rowIndex = startRow;
+        for (T item : data) {
+            Row row = sheet.createRow(rowIndex++);
+            List<Object> values = rowMapper.apply(item);
+            for (int i = 0; i < values.size(); i++) {
+                setCellValue(row.createCell(i), values.get(i));
             }
         }
     }

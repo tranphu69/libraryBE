@@ -7,10 +7,7 @@ import com.example.library.domain.Permission;
 import com.example.library.domain.Role;
 import com.example.library.dto.request.RolePageRequest;
 import com.example.library.dto.request.RoleRequest;
-import com.example.library.dto.response.ApiResponse;
-import com.example.library.dto.response.PageResponse;
-import com.example.library.dto.response.PaginationMeta;
-import com.example.library.dto.response.RoleResponse;
+import com.example.library.dto.response.*;
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
 import com.example.library.exception.ResourceNotFoundException;
@@ -19,15 +16,25 @@ import com.example.library.repository.PermissionRepository;
 import com.example.library.repository.RoleRepository;
 import com.example.library.service.RoleService;
 import com.example.library.util.DataUtils;
+import com.example.library.util.ExcelUtils;
 import com.example.library.util.ResponseUtils;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -41,6 +48,7 @@ public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
     private final PermissionRepository permissionRepository;
+    private final String TEMPLATE_ROLE = "template/Template_role.xlsx";
 
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
 
@@ -166,5 +174,65 @@ public class RoleServiceImpl implements RoleService {
                 .pagination(contentPage)
                 .build();
         return ResponseUtils.success(result, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public ApiResponse<ListResponse<SimpleResponse>> getAllStatusActive() {
+        List<Role> listStatusActive = roleRepository.getAllStatusActive();
+        List<SimpleResponse> content = listStatusActive.stream()
+                .map(roleMapper::toSimpleResponse).toList();
+        ListResponse<SimpleResponse> result = ListResponse.<SimpleResponse>builder()
+                .content(content)
+                .total(content.size())
+                .build();
+        return ResponseUtils.success(result, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        ClassPathResource template = new ClassPathResource(TEMPLATE_ROLE);
+        XSSFWorkbook workbook = new XSSFWorkbook(template.getInputStream());
+        ServletOutputStream outputStream = response.getOutputStream();
+        List<Permission> listStatusActive = permissionRepository.getAllStatusActive();
+        Sheet sheet = workbook.getSheetAt(1);
+        int rowIndex = 1;
+        for (Permission permission : listStatusActive) {
+            Row row = sheet.createRow(rowIndex++);
+            row.createCell(0).setCellValue(permission.getPublicId());
+            row.createCell(1).setCellValue(permission.getCode());
+            row.createCell(2).setCellValue(permission.getName());
+        }
+        workbook.write(outputStream);
+        workbook.close();
+        outputStream.flush();
+    }
+
+    @Override
+    public void export(RolePageRequest request, HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=Export_role_" + LocalDate.now() + ".xlsx");
+        ClassPathResource template = new ClassPathResource(TEMPLATE_ROLE);
+        try (Workbook workbook = new XSSFWorkbook(template.getInputStream());
+             ServletOutputStream out = response.getOutputStream()) {
+            List<Role> roles = roleRepository.searchExport(request.getCode(), request.getName(),
+                    request.getListPermission(), request.getStatus());
+            ExcelUtils.writeSheet(workbook, 0, roles,
+                    role -> List.of(
+                            role.getCode(),
+                            role.getName(),
+                            role.getDescription(),
+                            role.getStatus(),
+                            String.join(", ",
+                                    roleRepository.getPermissionCodesByRoleId(role.getId()))
+                    ), 1);
+            List<Permission> permissions = permissionRepository.getAllStatusActive();
+            ExcelUtils.writeSheet(workbook, 1, permissions,
+                    permission -> List.of(
+                            permission.getPublicId(),
+                            permission.getCode(),
+                            permission.getName()
+                    ), 1);
+            workbook.write(out);
+        }
     }
 }
