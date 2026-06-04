@@ -59,6 +59,7 @@ public class RoleServiceImpl implements RoleService {
     private RoleServiceImpl self;
     private final String TEMPLATE_ROLE = "template/Template_role.xlsx";
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
+    private final int NUMBER_RESULT = 5;
 
     private void validate(RoleRequest request, Set<String> listRoleDB, Set<Long> listIdPermissionDB) {
         if(DataUtils.isBlank(request.getCode())) {
@@ -333,7 +334,7 @@ public class RoleServiceImpl implements RoleService {
             Set<Permission> listPermission = permissionRepository.findByCodeInAndStatusNot(result, RoleConstant.DELETED);
             if(!errorMsg.isEmpty()) {
                 String errorMsgStr = String.join(", ", errorMsg);
-                row.createCell(5).setCellValue(AppConstant.ERROR_FILE + errorMsgStr);
+                row.createCell(NUMBER_RESULT).setCellValue(AppConstant.ERROR_FILE + errorMsgStr);
             } else {
                 collectRole(code, name, description, Long.parseLong(status), batchInsert, listPermission);
                 listRoleDB.add(code.trim().toUpperCase());
@@ -342,7 +343,7 @@ public class RoleServiceImpl implements RoleService {
                     batchInsert.clear();
                 }
                 String errorMsgStr = AppConstant.SUCCESS_FILE;
-                row.createCell(5).setCellValue(errorMsgStr);
+                row.createCell(NUMBER_RESULT).setCellValue(errorMsgStr);
             }
         }
         if(!batchInsert.isEmpty()) {
@@ -357,9 +358,9 @@ public class RoleServiceImpl implements RoleService {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
         ) {
             Sheet sheet = workbook.getSheetAt(0);
-            sheet.setColumnWidth(5, 5000);
+            sheet.setColumnWidth(NUMBER_RESULT, 5000);
             Row header = sheet.getRow(0);
-            Cell errorCell = header.createCell(5);
+            Cell errorCell = header.createCell(NUMBER_RESULT);
             errorCell.setCellValue("Kết quả trả về");
             CellStyle style = workbook.createCellStyle();
             Font font = workbook.createFont();
