@@ -22,24 +22,29 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -48,8 +53,11 @@ public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
     private final PermissionRepository permissionRepository;
-    private final String TEMPLATE_ROLE = "template/Template_role.xlsx";
 
+    @Lazy
+    @Autowired
+    private RoleServiceImpl self;
+    private final String TEMPLATE_ROLE = "template/Template_role.xlsx";
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
 
     private void validate(RoleRequest request, Set<String> listRoleDB, Set<Long> listIdPermissionDB) {
@@ -233,6 +241,155 @@ public class RoleServiceImpl implements RoleService {
                             permission.getName()
                     ), 1);
             workbook.write(out);
+        }
+    }
+
+    private void validateRowError(Set<String> listPermissionDB, Set<String> listRoleDB, List<String> errorMsg,
+                                  String code, String name, String description, String status, Set<String> result) {
+        if(DataUtils.isBlank(code)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.CODE));
+        } else if(DataUtils.maxLength(code, RoleConstant.MAX_LENGTH_CODE)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
+                    RoleConstant.CODE, RoleConstant.CODE_LENGTH));
+        } else if(!code.matches("^[a-zA-Z0-9_]+$")) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.CODE_CHARACTER, RoleConstant.CODE));
+        } else if(listRoleDB.contains(code.trim().toUpperCase())) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE));
+        }
+        if(DataUtils.isBlank(name)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.NAME));
+        } else if(DataUtils.maxLength(name, RoleConstant.MAX_LENGTH_NAME)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
+                    RoleConstant.NAME, RoleConstant.NAME_LENGTH));
+        }
+        if(DataUtils.maxLengthNotEmpty(description, RoleConstant.MAX_LENGTH_DESCRIPTION)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
+                    RoleConstant.DESCRIPTION, RoleConstant.DESCRIPTION_LENGTH));
+        }
+        if(DataUtils.isBlank(status)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.STATUS));
+        } else if(!DataUtils.isNumber(status)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_VALID, RoleConstant.STATUS));
+        } else if(!listStatus.contains(Long.parseLong(status))) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_VALID, RoleConstant.STATUS));
+        }
+        if(DataUtils.isEmptyList(result)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.LIST_PERMISSION));
+        } else if(!listPermissionDB.containsAll(result)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EXIST, RoleConstant.NOT_EXIST_PERMISSION));
+        }
+    }
+
+    private void collectRole(String code, String name, String description,
+                             Long status, List<Role> batchInsert, Set<Permission> permissions) {
+        Role role = Role.builder()
+                .code(code.toUpperCase())
+                .name(name)
+                .description(description)
+                .status(status)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .permissions(permissions)
+                .build();
+        batchInsert.add(role);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveRole(List<Role> batchInsert) {
+        try {
+            roleRepository.saveAll(batchInsert);
+        } catch (DataIntegrityViolationException e) {
+            for (Role role : batchInsert) {
+                try {
+                    roleRepository.save(role);
+                }  catch (DataIntegrityViolationException ex) {
+                    log.warn("Duplicate detected: {}", role.getCode());
+                }
+            }
+        }
+    }
+
+    private void validateRows(Sheet sheet, Set<String> listPermissionDB, Set<String> listRoleDB) {
+        int BATCH_SIZE = 5;
+        List<Role> batchInsert = new ArrayList<>();
+        for(int i = 1; i <= sheet.getLastRowNum(); i++) {
+            List<String> errorMsg = new ArrayList<>();
+            Row row = sheet.getRow(i);
+            if(row == null) continue;
+            Cell cellCode = row.getCell(0);
+            String code = ExcelUtils.getCellValue(cellCode);
+            Cell cellName = row.getCell(1);
+            String name = ExcelUtils.getCellValue(cellName);
+            Cell cellDescription = row.getCell(2);
+            String description = ExcelUtils.getCellValue(cellDescription);
+            Cell cellStatus = row.getCell(3);
+            String status = ExcelUtils.getCellValue(cellStatus);
+            Cell cellPermissions = row.getCell(4);
+            String permissions = ExcelUtils.getCellValue(cellPermissions);
+            Set<String> result = Arrays.stream(permissions.split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+            validateRowError(listPermissionDB, listRoleDB, errorMsg, code, name, description, status, result);
+            Set<Permission> listPermission = permissionRepository.findByCodeInAndStatusNot(result, RoleConstant.DELETED);
+            if(!errorMsg.isEmpty()) {
+                String errorMsgStr = String.join(", ", errorMsg);
+                row.createCell(5).setCellValue(AppConstant.ERROR_FILE + errorMsgStr);
+            } else {
+                collectRole(code, name, description, Long.parseLong(status), batchInsert, listPermission);
+                listRoleDB.add(code.trim().toUpperCase());
+                if(batchInsert.size() >= BATCH_SIZE) {
+                    self.saveRole(batchInsert);
+                    batchInsert.clear();
+                }
+                String errorMsgStr = AppConstant.SUCCESS_FILE;
+                row.createCell(5).setCellValue(errorMsgStr);
+            }
+        }
+        if(!batchInsert.isEmpty()) {
+            self.saveRole(batchInsert);
+            batchInsert.clear();
+        }
+    }
+
+    private byte[] buildResultWorkbook(byte[] fileBytes) throws IOException {
+        try (
+                Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(fileBytes));
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ) {
+            Sheet sheet = workbook.getSheetAt(0);
+            sheet.setColumnWidth(5, 5000);
+            Row header = sheet.getRow(0);
+            Cell errorCell = header.createCell(5);
+            errorCell.setCellValue("Kết quả trả về");
+            CellStyle style = workbook.createCellStyle();
+            Font font = workbook.createFont();
+            font.setBold(true);
+            style.setFont(font);
+            errorCell.setCellStyle(style);
+            Set<String> listPermissionDB = permissionRepository.findAllCodes();
+            Set<String> listRoleDB = roleRepository.findAllCodes();
+            validateRows(sheet, listPermissionDB, listRoleDB);
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    @Override
+    public byte[] importFile(MultipartFile file) {
+        if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
+        if(file.getSize() > RoleConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
+        if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+        final byte[] fileBytes;
+        try {
+            fileBytes = file.getBytes();
+        } catch(IOException e) {
+            throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
+        }
+        try(InputStream templateIs = new ClassPathResource(TEMPLATE_ROLE).getInputStream()) {
+            ExcelUtils.validateHeaders(templateIs, new ByteArrayInputStream(fileBytes));
+            return buildResultWorkbook(fileBytes);
+        } catch(IOException e) {
+            throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
         }
     }
 }

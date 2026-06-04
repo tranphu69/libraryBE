@@ -244,7 +244,7 @@ public class PermissionServiceImpl implements PermissionService {
     private void collectPermission(String code, String name, String description,
                                    Long status, List<Permission> batchInsert) {
         Permission permission = Permission.builder()
-                .code(code)
+                .code(code.toUpperCase())
                 .name(name)
                 .description(description)
                 .status(status)

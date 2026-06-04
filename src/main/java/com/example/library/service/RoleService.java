@@ -4,6 +4,7 @@ import com.example.library.dto.request.RolePageRequest;
 import com.example.library.dto.request.RoleRequest;
 import com.example.library.dto.response.*;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -15,4 +16,5 @@ public interface RoleService {
     ApiResponse<ListResponse<SimpleResponse>> getAllStatusActive();
     void downloadTemplate(HttpServletResponse response) throws IOException;
     void export(RolePageRequest request, HttpServletResponse response) throws IOException;
+    byte[] importFile(MultipartFile file);
 }

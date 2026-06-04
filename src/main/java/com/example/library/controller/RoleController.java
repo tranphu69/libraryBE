@@ -6,8 +6,11 @@ import com.example.library.dto.response.*;
 import com.example.library.service.RoleService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
@@ -53,5 +56,16 @@ public class RoleController {
     @PostMapping("/export")
     public void export(RolePageRequest request, HttpServletResponse response) throws IOException {
         roleService.export(request, response);
+    }
+
+    @PostMapping("/import")
+    public ResponseEntity<Object> importFile(@RequestParam MultipartFile file) {
+        byte[] errorFile = roleService.importFile(file);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=IMPORT_VAI_TRO_KET_QUA.xlsx")
+                .header("Access-Control-Expose-Headers", "Content-Disposition")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(errorFile);
     }
 }

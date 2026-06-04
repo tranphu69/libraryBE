@@ -43,4 +43,6 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>, J
             "AND p.status <> -1")
     Page<Permission> search(@Param("code") String code, @Param("name") String name,
                             @Param("status") Long status, Pageable pageable);
+
+    Set<Permission> findByCodeInAndStatusNot(Set<String> code, Long status);
 }
