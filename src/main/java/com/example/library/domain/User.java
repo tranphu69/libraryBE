@@ -1,6 +1,5 @@
 package com.example.library.domain;
 
-import com.example.library.constant.Provider;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,12 +19,12 @@ public class User {
     @Id
     @Column(name = "ID")
     private String id;
+    @Column(name = "CODE")
+    private String code;
     @Column(name = "EMAIL")
     private String email;
     @Column(name = "FULL_NAME")
     private String fullName;
-    @Column(name = "AVATAR_URL")
-    private String avatarUrl;
     @Column(name = "PASSWORD")
     private String password;
     @Column(name = "CREATED_AT")
@@ -43,25 +42,17 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+    @Column(name = "AVATAR_URL")
+    private String avatarUrl;
     // XEM TAI KHOAN DA GUI OPT DE KICH HOAT CHUA
     @Column(name = "IS_ACTIVE")
     private boolean isActive = false;
     // DANH DAU EMAIL DA XAC THUC
     @Column(name = "IS_EMAIL_VERIFIED")
     private boolean isEmailVerified = false;
-    // NGUON DANG NHAP CUA NGUOI DUNG
-    @Enumerated(EnumType.STRING)
-    @Column(name = "PROVIDER")
-    private Provider provider = Provider.LOCAL;
-    // ID NGUOI DUNG PHIA PROVIDER BEN NGOAI
-    @Column(name = "PROVIDER_ID")
-    private String providerId;
     // BAT/TAT XAC THUC OTP
     @Column(name = "MFA_ENABLED")
     private boolean mfaEnabled = false;
-    // SECRET KEY TOTP - DUOC TAO KHI USER SETUP GOOGLE AUTHENTICATOR
-    @Column(name = "MFA_SECRET")
-    private String mfaSecret;
     // TRANG THAI KHOA TAI KHOAN
     @Column(name = "IS_LOCKED")
     private boolean isLocked = false;

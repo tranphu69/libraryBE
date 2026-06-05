@@ -1,4 +1,6 @@
 package com.example.library.repository.repositoryImpl;
 
-public class UserRepositoryCustomImpl {
+import com.example.library.repository.UserRepositoryCustom;
+
+public class UserRepositoryCustomImpl implements UserRepositoryCustom {
 }
