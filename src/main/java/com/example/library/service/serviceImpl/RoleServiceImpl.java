@@ -269,7 +269,7 @@ public class RoleServiceImpl implements RoleService {
         }
         if(DataUtils.isBlank(status)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.STATUS));
-        } else if(!DataUtils.isNumber(status)) {
+        } else if(DataUtils.isNumber(status)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_VALID, RoleConstant.STATUS));
         } else if(!listStatus.contains(Long.parseLong(status))) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_VALID, RoleConstant.STATUS));

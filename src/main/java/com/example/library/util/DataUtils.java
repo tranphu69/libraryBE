@@ -6,6 +6,8 @@ import java.text.MessageFormat;
 import java.util.Collection;
 
 public class DataUtils {
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+
     public static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
@@ -34,15 +36,19 @@ public class DataUtils {
         return collection == null || collection.isEmpty();
     }
 
+    public static boolean isValidEmail(String email) {
+        return email != null && email.matches(EMAIL_REGEX);
+    }
+
     public static boolean isNumber(String value) {
         if(value == null || value.trim().isEmpty()) {
-            return false;
+            return true;
         }
         try {
             Long.parseLong(value.trim());
-            return true;
-        } catch(NumberFormatException e) {
             return false;
+        } catch(NumberFormatException e) {
+            return true;
         }
     }
 }

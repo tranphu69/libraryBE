@@ -1,6 +1,5 @@
 package com.example.library.mapper;
 
-import com.example.library.domain.Permission;
 import com.example.library.domain.Role;
 import com.example.library.dto.response.RoleResponse;
 import com.example.library.dto.response.SimpleResponse;

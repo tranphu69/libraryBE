@@ -19,6 +19,9 @@ public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificat
     @Query("SELECT r.code FROM Role r WHERE r.status <> -1 ")
     Set<String> findAllCodes();
 
+    @Query("SELECT r.id FROM Role r WHERE r.status <> -1 ")
+    Set<Long> findAllId();
+
     @Query("SELECT r.code FROM Role r WHERE r.status <> -1 AND r.publicId <> :id")
     Set<String> findAllCodesOtherPublicId(String id);
 

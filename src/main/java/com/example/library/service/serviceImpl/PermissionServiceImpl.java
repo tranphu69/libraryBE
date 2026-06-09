@@ -235,7 +235,7 @@ public class PermissionServiceImpl implements PermissionService {
         }
         if(DataUtils.isBlank(status)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, PermissionConstant.STATUS));
-        } else if(!DataUtils.isNumber(status)) {
+        } else if(DataUtils.isNumber(status)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_VALID, PermissionConstant.STATUS));
         } else if(!listStatus.contains(Long.parseLong(status))) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_VALID, PermissionConstant.STATUS));

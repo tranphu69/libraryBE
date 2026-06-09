@@ -44,6 +44,9 @@ public class User {
     private Set<Role> roles = new HashSet<>();
     @Column(name = "AVATAR_URL")
     private String avatarUrl;
+    // XOA MEM TAI KHOAN NGUOI DUNG
+    @Column(name = "IS_DELETED")
+    private boolean isDeleted = false;
     // XEM TAI KHOAN DA GUI OPT DE KICH HOAT CHUA
     @Column(name = "IS_ACTIVE")
     private boolean isActive = false;
