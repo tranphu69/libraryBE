@@ -21,6 +21,7 @@ import com.example.library.repository.UserRepository;
 import com.example.library.service.UserService;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ResponseUtils;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -162,5 +164,10 @@ public class UserServiceImpl implements UserService {
                 .pagination(contentPage)
                 .build();
         return ResponseUtils.success(result, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+
     }
 }
