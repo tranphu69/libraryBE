@@ -46,22 +46,22 @@ public class User {
     private String avatarUrl;
     // XOA MEM TAI KHOAN NGUOI DUNG
     @Column(name = "IS_DELETED")
-    private boolean isDeleted = false;
+    private Boolean isDeleted = false;
     // XEM TAI KHOAN DA GUI OPT DE KICH HOAT CHUA
     @Column(name = "IS_ACTIVE")
-    private boolean isActive = false;
+    private Boolean isActive = false;
     // DANH DAU EMAIL DA XAC THUC
     @Column(name = "IS_EMAIL_VERIFIED")
-    private boolean isEmailVerified = false;
+    private Boolean isEmailVerified = false;
     // BAT/TAT XAC THUC OTP
     @Column(name = "MFA_ENABLED")
-    private boolean mfaEnabled = false;
+    private Boolean mfaEnabled = false;
     // TRANG THAI KHOA TAI KHOAN
     @Column(name = "IS_LOCKED")
-    private boolean isLocked = false;
+    private Boolean isLocked = false;
     // SO LAN DANG NHAP SAI LIEN TIEP
     @Column(name = "FAILED_LOGIN_ATTEMPTS")
-    private int failedLoginAttempts = 0;
+    private Integer failedLoginAttempts = 0;
     // THOI DIEM DANG NHAP CUOI CUNG
     @Column(name = "LAST_LOGIN_AT")
     private LocalDateTime lastLoginAt;

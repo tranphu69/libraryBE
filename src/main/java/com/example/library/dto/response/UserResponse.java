@@ -21,11 +21,10 @@ public class UserResponse {
     private String updatedBy;
     private Set<SimpleResponse> listRole;
     private String avatarUrl;
-    private boolean isDeleted;
-    private boolean isActive;
-    private boolean isEmailVerified;
-    private boolean mfaEnabled;
-    private boolean isLocked;
-    private int failedLoginAttempts;
+    private Boolean isActive;
+    private Boolean isEmailVerified;
+    private Boolean mfaEnabled;
+    private Boolean isLocked;
+    private Integer failedLoginAttempts;
     private LocalDateTime lastLoginAt;
 }

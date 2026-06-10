@@ -3,13 +3,13 @@ package com.example.library.constant;
 public class UserConstant {
     public static final String CODE = "Mã người dùng";
     public static final String CODE_LENGTH = "100";
-    public static final String EMAIL = "Email";
     public static final String COMMON_LENGTH = "255";
     public static final String FULL_NAME = "Họ tên";
     public static final String PASSWORD = "Mật khẩu";
     public static final String PASSWORD_LENGTH = "15";
     public static final String LIST_ROLE = "Danh sách vai trò";
     public static final String NOT_EXIST_ROLE = "Có vai trò trong danh sách vai trò";
+    public static final String USER = "Người dùng";
 
     public static final Long ACTIVE = 1L;
     public static final Long INACTIVE = 0L;

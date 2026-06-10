@@ -10,8 +10,11 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class UserRequest {
+    private String id;
     private String code;
     private String fullName;
     private String password;
     private Set<Long> listRole;
+    private Boolean mfaEnabled;
+    private Boolean isLocked;
 }
