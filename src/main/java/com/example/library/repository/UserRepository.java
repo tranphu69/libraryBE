@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -32,4 +33,14 @@ public interface UserRepository  extends JpaRepository<User, String>, JpaSpecifi
             "AND (:listRole IS NULL OR r.id IN :listRole) AND u.isDeleted <> true")
     Page<User> search(@Param("code")String code, @Param("fullName") String fullName, @Param("email") String email,
                       @Param("listRole") Set<Long> listRole, Pageable pageable);
+
+    @Query("SELECT u FROM User u JOIN u.roles r " +
+            "WHERE (:code IS NULL OR :code = '' OR LOWER(u.code) LIKE LOWER(CONCAT('%', :code, '%'))) " +
+            "AND (:fullName IS NULL OR :fullName = '' OR u.fullName LIKE CONCAT('%', :fullName, '%')) " +
+            "AND (:email IS NULL OR :email = '' OR u.email LIKE CONCAT('%', :email, '%')) " +
+            "AND (:listRole IS NULL OR r.id IN :listRole) AND u.isDeleted <> true")
+    List<User> searchExport(@Param("code")String code, @Param("fullName") String fullName, @Param("email") String email, @Param("listRole") Set<Long> listRole);
+
+    @Query("SELECT r.code FROM User u JOIN u.roles r WHERE u.id = :userId AND r.status <> -1")
+    Set<String> getRoleCodesByUserId(@Param("userId") String userId);
 }

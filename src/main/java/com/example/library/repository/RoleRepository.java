@@ -51,4 +51,6 @@ public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificat
 
     @Query("SELECT p.code FROM Role r JOIN r.permissions p Where r.id = :roleId AND p.status <> -1")
     Set<String> getPermissionCodesByRoleId(@Param("roleId") Long roleId);
+
+    Set<Role> findByCodeInAndStatusNot(Set<String> code, Long status);
 }

@@ -207,9 +207,8 @@ public class RoleServiceImpl implements RoleService {
         int rowIndex = 1;
         for (Permission permission : listStatusActive) {
             Row row = sheet.createRow(rowIndex++);
-            row.createCell(0).setCellValue(permission.getPublicId());
-            row.createCell(1).setCellValue(permission.getCode());
-            row.createCell(2).setCellValue(permission.getName());
+            row.createCell(0).setCellValue(permission.getCode());
+            row.createCell(1).setCellValue(permission.getName());
         }
         workbook.write(outputStream);
         workbook.close();
@@ -226,7 +225,7 @@ public class RoleServiceImpl implements RoleService {
             List<Role> roles = roleRepository.searchExport(request.getCode(), request.getName(),
                     request.getListPermission(), request.getStatus());
             ExcelUtils.writeSheet(workbook, 0, roles,
-                    role -> List.of(
+                    role -> Arrays.asList(
                             role.getCode(),
                             role.getName(),
                             role.getDescription(),
@@ -236,8 +235,7 @@ public class RoleServiceImpl implements RoleService {
                     ), 1);
             List<Permission> permissions = permissionRepository.getAllStatusActive();
             ExcelUtils.writeSheet(workbook, 1, permissions,
-                    permission -> List.of(
-                            permission.getPublicId(),
+                    permission -> Arrays.asList(
                             permission.getCode(),
                             permission.getName()
                     ), 1);
