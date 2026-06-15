@@ -21,6 +21,7 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
@@ -80,7 +81,9 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<PermissionResponse> create(PermissionRequest request) {
+        log.info("Creating new permission with code: {}", request.getCode());
         validate(request);
         Permission permission = Permission.builder()
                 .code(request.getCode().trim().toUpperCase())
@@ -91,12 +94,15 @@ public class PermissionServiceImpl implements PermissionService {
                 .updatedAt(LocalDateTime.now())
                 .build();
         Permission saved = permissionRepository.save(permission);
+        log.info("Permission created successfully with id: {}", saved.getId());
         PermissionResponse response = permissionMapper.toPermissionResponse(saved);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     @Override
+    @Transactional
     public ApiResponse<PermissionResponse> update(PermissionRequest request) {
+        log.info("Updating permission with id: {}", request.getId());
         Permission permission = permissionRepository.findByPublicIdAndStatusNot(request.getId(), PermissionConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, PermissionConstant.PERMISSION));
         validate(request);
@@ -106,12 +112,15 @@ public class PermissionServiceImpl implements PermissionService {
         permission.setStatus(request.getStatus());
         permission.setUpdatedAt(LocalDateTime.now());
         permissionRepository.save(permission);
+        log.info("Permission updated successfully with id: {}", permission.getId());
         PermissionResponse response = permissionMapper.toPermissionResponse(permission);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     @Override
+    @Transactional
     public ApiResponse<Void> delete(String id) {
+        log.info("Deleting permission with id: {}", id);
         Permission permission = permissionRepository.findByPublicIdAndStatusNot(id, PermissionConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, PermissionConstant.PERMISSION));
         if(roleRepository.existsByPermissionId(permission.getId())) {
@@ -305,7 +314,9 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
+    @Transactional
     public byte[] importFile(MultipartFile file) {
+        log.info("Starting import permissions from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > PermissionConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
         if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
@@ -317,8 +328,11 @@ public class PermissionServiceImpl implements PermissionService {
         }
         try(InputStream templateIs = new ClassPathResource(TEMPLATE_PERMISSION).getInputStream()) {
             ExcelUtils.validateHeaders(templateIs, new ByteArrayInputStream(fileBytes));
-            return buildResultWorkbook(fileBytes);
+            byte[] result = buildResultWorkbook(fileBytes);
+            log.info("Import permissions completed successfully");
+            return result;
         } catch(IOException e) {
+            log.error("Error importing permissions file", e);
             throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
         }
     }

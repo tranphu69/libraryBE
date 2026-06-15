@@ -23,6 +23,7 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
@@ -85,7 +86,9 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<RoleResponse> create(RoleRequest request) {
+        log.info("Creating new role with code: {}", request.getCode());
         Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
         validate(request, listIdPermissionDB);
         Set<Permission> permissions = new HashSet<>(
@@ -101,12 +104,15 @@ public class RoleServiceImpl implements RoleService {
                 .permissions(permissions)
                 .build();
         Role saved = roleRepository.save(role);
+        log.info("Role created successfully with id: {}", saved.getId());
         RoleResponse response = roleMapper.toRoleResponse(saved);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     @Override
+    @Transactional
     public ApiResponse<RoleResponse> update(RoleRequest request) {
+        log.info("Updating role with id: {}", request.getId());
         Role role = roleRepository.findByPublicIdAndStatusNot(request.getId(), RoleConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, RoleConstant.ROLE));
         Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
@@ -121,12 +127,15 @@ public class RoleServiceImpl implements RoleService {
         role.setUpdatedAt(LocalDateTime.now());
         role.setPermissions(permissions);
         roleRepository.save(role);
+        log.info("Role updated successfully with id: {}", role.getId());
         RoleResponse response = roleMapper.toRoleResponse(role);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     @Override
+    @Transactional
     public ApiResponse<Void> delete(String id) {
+        log.info("Deleting role with id: {}", id);
         Role role = roleRepository.findByPublicIdAndStatusNot(id, RoleConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, RoleConstant.ROLE));
         role.setStatus(RoleConstant.DELETED);
@@ -350,7 +359,9 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional
     public byte[] importFile(MultipartFile file) {
+        log.info("Starting import roles from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > RoleConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
         if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
@@ -362,8 +373,11 @@ public class RoleServiceImpl implements RoleService {
         }
         try(InputStream templateIs = new ClassPathResource(TEMPLATE_ROLE).getInputStream()) {
             ExcelUtils.validateHeaders(templateIs, new ByteArrayInputStream(fileBytes));
-            return buildResultWorkbook(fileBytes);
+            byte[] result = buildResultWorkbook(fileBytes);
+            log.info("Import roles completed successfully");
+            return result;
         } catch(IOException e) {
+            log.error("Error importing roles file", e);
             throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
         }
     }

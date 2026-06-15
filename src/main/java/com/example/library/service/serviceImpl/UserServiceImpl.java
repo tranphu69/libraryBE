@@ -27,6 +27,7 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.ClassPathResource;
@@ -82,7 +83,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public ApiResponse<UserResponse> create(UserRequest request) {
+        log.info("Creating new user with code: {}", request.getCode());
         Set<String> listRoleDB = roleRepository.findAllPublicId();
         validate(request, listRoleDB);
         if(DataUtils.isBlank(request.getPassword())) {
@@ -102,12 +105,15 @@ public class UserServiceImpl implements UserService {
                 .updatedAt(LocalDateTime.now())
                 .build();
         User saved = userRepository.save(user);
+        log.info("User created successfully with id: {}", saved.getId());
         UserResponse response = userMapper.toUserResponse(saved);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     @Override
+    @Transactional
     public ApiResponse<UserResponse> update(UserRequest request) {
+        log.info("Updating user with id: {}", request.getId());
         User user = userRepository.findByIdAndIsDeletedNot(request.getId(), true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, UserConstant.USER));
         Set<String> listRoleDB = roleRepository.findAllPublicId();
@@ -122,17 +128,21 @@ public class UserServiceImpl implements UserService {
         user.setMfaEnabled(request.getMfaEnabled());
         user.setIsLocked(request.getIsLocked());
         userRepository.save(user);
+        log.info("User updated successfully with id: {}", user.getId());
         UserResponse response = userMapper.toUserResponse(user);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     @Override
+    @Transactional
     public ApiResponse<Void> delete(String id) {
+        log.info("Deleting user with id: {}", id);
         User user = userRepository.findByIdAndIsDeletedNot(id, true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, UserConstant.USER));
         user.setIsDeleted(true);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+        log.info("User deleted successfully with id: {}", user.getId());
         return ResponseUtils.success(null, AppConstant.SUCCESS);
     }
 
@@ -336,7 +346,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public byte[] importFile(MultipartFile file) {
+        log.info("Starting import users from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > RoleConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
         if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
@@ -348,8 +360,11 @@ public class UserServiceImpl implements UserService {
         }
         try(InputStream templateIs = new ClassPathResource(TEMPLATE_USER_IMPORT).getInputStream()) {
             ExcelUtils.validateHeaders(templateIs, new ByteArrayInputStream(fileBytes));
-            return buildResultWorkbook(fileBytes);
+            byte[] result = buildResultWorkbook(fileBytes);
+            log.info("Import users completed successfully");
+            return result;
         } catch(IOException e) {
+            log.error("Error importing users file", e);
             throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
         }
     }
