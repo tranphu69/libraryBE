@@ -15,6 +15,7 @@ import com.example.library.mapper.RoleMapper;
 import com.example.library.repository.PermissionRepository;
 import com.example.library.repository.RoleRepository;
 import com.example.library.service.RoleService;
+import com.example.library.service.serviceImportImpl.RoleImportImpl;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ExcelUtils;
 import com.example.library.util.ResponseUtils;
@@ -24,17 +25,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -53,22 +49,19 @@ public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
     private final PermissionRepository permissionRepository;
-
-    @Lazy
-    @Autowired
-    private RoleServiceImpl self;
+    private final RoleImportImpl roleImport;
     private final String TEMPLATE_ROLE = "template/Template_role.xlsx";
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
     private final int NUMBER_RESULT = 5;
 
-    private void validate(RoleRequest request, Set<String> listRoleDB, Set<Long> listIdPermissionDB) {
+    private void validate(RoleRequest request, Set<String> listIdPermissionDB) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, RoleConstant.CODE);
         } else if(DataUtils.maxLength(request.getCode(), RoleConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, RoleConstant.CODE, RoleConstant.CODE_LENGTH);
         } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, RoleConstant.CODE);
-        } else if(listRoleDB.contains(request.getCode().trim().toUpperCase())) {
+        } else if(roleRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
@@ -93,11 +86,10 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public ApiResponse<RoleResponse> create(RoleRequest request) {
-        Set<String> listRoleDB = roleRepository.findAllCodes();
-        Set<Long> listIdPermissionDB = permissionRepository.findAllId();
-        validate(request, listRoleDB, listIdPermissionDB);
+        Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
+        validate(request, listIdPermissionDB);
         Set<Permission> permissions = new HashSet<>(
-                permissionRepository.findAllById(request.getListPermission())
+                permissionRepository.findAllOfPermissionPublicId(request.getListPermission())
         );
         Role role = Role.builder()
                 .code(request.getCode().trim().toUpperCase())
@@ -117,11 +109,10 @@ public class RoleServiceImpl implements RoleService {
     public ApiResponse<RoleResponse> update(RoleRequest request) {
         Role role = roleRepository.findByPublicIdAndStatusNot(request.getId(), RoleConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, RoleConstant.ROLE));
-        Set<String> listRoleDB = roleRepository.findAllCodesOtherPublicId(request.getId());
-        Set<Long> listIdPermissionDB = permissionRepository.findAllId();
-        validate(request, listRoleDB, listIdPermissionDB);
+        Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
+        validate(request, listIdPermissionDB);
         Set<Permission> permissions = new HashSet<>(
-                permissionRepository.findAllById(request.getListPermission())
+                permissionRepository.findAllOfPermissionPublicId(request.getListPermission())
         );
         role.setCode(request.getCode().trim().toUpperCase());
         role.setName(request.getName().trim());
@@ -293,23 +284,8 @@ public class RoleServiceImpl implements RoleService {
         batchInsert.add(role);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveRole(List<Role> batchInsert) {
-        try {
-            roleRepository.saveAll(batchInsert);
-        } catch (DataIntegrityViolationException e) {
-            for (Role role : batchInsert) {
-                try {
-                    roleRepository.save(role);
-                }  catch (DataIntegrityViolationException ex) {
-                    log.warn("Duplicate detected: {}", role.getCode());
-                }
-            }
-        }
-    }
-
     private void validateRows(Sheet sheet, Set<String> listPermissionDB, Set<String> listRoleDB) {
-        int BATCH_SIZE = 5;
+        int BATCH_SIZE = 500;
         List<Role> batchInsert = new ArrayList<>();
         for(int i = 1; i <= sheet.getLastRowNum(); i++) {
             List<String> errorMsg = new ArrayList<>();
@@ -337,7 +313,7 @@ public class RoleServiceImpl implements RoleService {
                 collectRole(code, name, description, Long.parseLong(status), batchInsert, listPermission);
                 listRoleDB.add(code.trim().toUpperCase());
                 if(batchInsert.size() >= BATCH_SIZE) {
-                    self.saveRole(batchInsert);
+                    roleImport.saveRole(batchInsert);
                     batchInsert.clear();
                 }
                 String errorMsgStr = AppConstant.SUCCESS_FILE;
@@ -345,7 +321,7 @@ public class RoleServiceImpl implements RoleService {
             }
         }
         if(!batchInsert.isEmpty()) {
-            self.saveRole(batchInsert);
+            roleImport.saveRole(batchInsert);
             batchInsert.clear();
         }
     }

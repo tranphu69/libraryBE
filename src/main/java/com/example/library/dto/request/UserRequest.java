@@ -14,7 +14,7 @@ public class UserRequest {
     private String code;
     private String fullName;
     private String password;
-    private Set<Long> listRole;
+    private Set<String> listRole;
     private Boolean mfaEnabled;
     private Boolean isLocked;
 }

@@ -13,26 +13,22 @@ import com.example.library.mapper.PermissionMapper;
 import com.example.library.repository.PermissionRepository;
 import com.example.library.repository.RoleRepository;
 import com.example.library.service.PermissionService;
+import com.example.library.service.serviceImportImpl.PermissionImportImpl;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ExcelUtils;
 import com.example.library.util.ResponseUtils;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -53,22 +49,19 @@ public class PermissionServiceImpl implements PermissionService {
     private final PermissionRepository permissionRepository;
     private final PermissionMapper permissionMapper;
     private final RoleRepository roleRepository;
-
-    @Lazy
-    @Autowired
-    private PermissionServiceImpl self;
+    private final PermissionImportImpl permissionImport;
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
     private final String TEMPLATE_PERMISSION = "template/Template_permission.xlsx";
     private final int NUMBER_RESULT = 4;
 
-    private void validate(PermissionRequest request, Set<String> listPermissionDB) {
+    private void validate(PermissionRequest request) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, PermissionConstant.CODE);
         } else if(DataUtils.maxLength(request.getCode(), PermissionConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, PermissionConstant.CODE, PermissionConstant.CODE_LENGTH);
         } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, PermissionConstant.CODE);
-        } else if(listPermissionDB.contains(request.getCode().trim().toUpperCase())) {
+        } else if(permissionRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
@@ -88,8 +81,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public ApiResponse<PermissionResponse> create(PermissionRequest request) {
-        Set<String> listPermissionDB = permissionRepository.findAllCodes();
-        validate(request, listPermissionDB);
+        validate(request);
         Permission permission = Permission.builder()
                 .code(request.getCode().trim().toUpperCase())
                 .name(request.getName().trim())
@@ -107,8 +99,7 @@ public class PermissionServiceImpl implements PermissionService {
     public ApiResponse<PermissionResponse> update(PermissionRequest request) {
         Permission permission = permissionRepository.findByPublicIdAndStatusNot(request.getId(), PermissionConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, PermissionConstant.PERMISSION));
-        Set<String> listPermissionDB = permissionRepository.findAllCodesOtherPublicId(request.getId());
-        validate(request, listPermissionDB);
+        validate(request);
         permission.setCode(request.getCode().trim().toUpperCase());
         permission.setName(request.getName().trim());
         permission.setDescription(request.getDescription().trim());
@@ -255,23 +246,8 @@ public class PermissionServiceImpl implements PermissionService {
         batchInsert.add(permission);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void savePermission(List<Permission> batchInsert) {
-        try {
-            permissionRepository.saveAll(batchInsert);
-        } catch (DataIntegrityViolationException e) {
-            for(Permission permission : batchInsert) {
-                try {
-                    permissionRepository.save(permission);
-                } catch (DataIntegrityViolationException ex) {
-                    log.warn("Duplicate detected: {}", permission.getCode());
-                }
-            }
-        }
-    }
-
     private void validateRows(Sheet sheet, Set<String> listPermissionDB) {
-        int BATCH_SIZE = 5;
+        int BATCH_SIZE = 500;
         List<Permission> batchInsert = new ArrayList<>();
         for(int i = 1; i <= sheet.getLastRowNum(); i++) {
             List<String> errorMsg = new ArrayList<>();
@@ -293,7 +269,7 @@ public class PermissionServiceImpl implements PermissionService {
                 collectPermission(code, name, description, Long.parseLong(status), batchInsert);
                 listPermissionDB.add(code.trim().toUpperCase());
                 if(batchInsert.size() >= BATCH_SIZE) {
-                    self.savePermission(batchInsert);
+                    permissionImport.savePermission(batchInsert);
                     batchInsert.clear();
                 }
                 String errorMsgStr = AppConstant.SUCCESS_FILE;
@@ -301,7 +277,7 @@ public class PermissionServiceImpl implements PermissionService {
             }
         }
         if(!batchInsert.isEmpty()) {
-            self.savePermission(batchInsert);
+            permissionImport.savePermission(batchInsert);
             batchInsert.clear();
         }
     }

@@ -4,6 +4,7 @@ import com.example.library.dto.request.RolePageRequest;
 import com.example.library.dto.request.RoleRequest;
 import com.example.library.dto.response.*;
 import com.example.library.service.RoleService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +18,7 @@ import java.io.IOException;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/roles")
+@Tag(name = "Role Management")
 public class RoleController {
     private final RoleService roleService;
     private static final String FILE_NAME = "Template_role.xlsx";

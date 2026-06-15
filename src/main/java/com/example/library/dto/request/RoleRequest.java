@@ -15,5 +15,5 @@ public class RoleRequest {
     private String name;
     private String description;
     private Long status;
-    private Set<Long> listPermission;
+    private Set<String> listPermission;
 }

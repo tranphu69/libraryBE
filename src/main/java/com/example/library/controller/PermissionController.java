@@ -4,6 +4,7 @@ import com.example.library.dto.request.PermissionPageRequest;
 import com.example.library.dto.request.PermissionRequest;
 import com.example.library.dto.response.*;
 import com.example.library.service.PermissionService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +18,7 @@ import java.io.IOException;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/permissions")
+@Tag(name = "Permission Management")
 public class PermissionController {
     private final PermissionService permissionService;
     private static final String FILE_NAME = "Template_permission.xlsx";

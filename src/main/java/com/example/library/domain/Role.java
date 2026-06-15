@@ -40,7 +40,7 @@ public class Role {
     private String publicId;
     @Column(name = "IS_SUPER")
     private boolean isSuper = false;
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "ROLES_PERMISSIONS",
             joinColumns = @JoinColumn(name = "ROLE_ID"),

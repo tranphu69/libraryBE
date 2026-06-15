@@ -1,6 +1,5 @@
 package com.example.library.repository;
 
-import com.example.library.domain.Permission;
 import com.example.library.domain.Role;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
@@ -22,8 +21,14 @@ public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificat
     @Query("SELECT r.id FROM Role r WHERE r.status <> -1 ")
     Set<Long> findAllId();
 
-    @Query("SELECT r.code FROM Role r WHERE r.status <> -1 AND r.publicId <> :id")
-    Set<String> findAllCodesOtherPublicId(String id);
+    @Query("SELECT r.publicId FROM Role r WHERE r.status <> -1 ")
+    Set<String> findAllPublicId();
+
+    @Query("SELECT r FROM Role r WHERE r.publicId IN (:roles) AND r.status <> -1 ")
+    Set<Role> findAllOfPermissionPublicId(Set<String> roles);
+
+    @Query("SELECT COUNT(r) > 0 FROM Role r WHERE r.code = :code AND r.status <> -1")
+    boolean existsActiveCode(@Param("code")String code);
 
     Optional<Role> findByPublicIdAndStatusNot(String id, Long status);
 

@@ -19,6 +19,7 @@ import com.example.library.mapper.UserMapper;
 import com.example.library.repository.RoleRepository;
 import com.example.library.repository.UserRepository;
 import com.example.library.service.UserService;
+import com.example.library.service.serviceImportImpl.UserImportImpl;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ExcelUtils;
 import com.example.library.util.ResponseUtils;
@@ -28,18 +29,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -55,9 +51,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    @Lazy
-    @Autowired
-    private UserServiceImpl self;
+    private UserImportImpl userImport;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
@@ -65,14 +59,14 @@ public class UserServiceImpl implements UserService {
     private final String TEMPLATE_USER_IMPORT = "template/Template_user_import.xlsx";
     private final int NUMBER_RESULT = 4;
 
-    private void validate(UserRequest request, Set<String> listCode, Set<Long> listRoleDB) {
+    private void validate(UserRequest request, Set<String> listRoleDB) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, UserConstant.CODE);
         } else if(DataUtils.maxLength(request.getCode(), UserConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, UserConstant.CODE, UserConstant.CODE_LENGTH);
         } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, UserConstant.CODE);
-        } else if(listCode.contains(request.getCode().trim().toUpperCase())) {
+        } else if(userRepository.existsActiveEmail(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, UserConstant.CODE);
         }
         if(DataUtils.isBlank(request.getFullName())) {
@@ -89,16 +83,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ApiResponse<UserResponse> create(UserRequest request) {
-        Set<String> listCode = userRepository.findAllCodes();
-        Set<Long> listRoleDB = roleRepository.findAllId();
-        validate(request, listCode, listRoleDB);
+        Set<String> listRoleDB = roleRepository.findAllPublicId();
+        validate(request, listRoleDB);
         if(DataUtils.isBlank(request.getPassword())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, UserConstant.PASSWORD);
         } else if(DataUtils.maxLength(request.getPassword(), UserConstant.MAX_LENGTH_PASSWORD)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, UserConstant.PASSWORD, UserConstant.PASSWORD_LENGTH);
         }
         Set<Role> roles = new HashSet<>(
-                roleRepository.findAllById(request.getListRole())
+                roleRepository.findAllOfPermissionPublicId(request.getListRole())
         );
         User user = User.builder()
                 .code(request.getCode().trim().toUpperCase())
@@ -117,11 +110,10 @@ public class UserServiceImpl implements UserService {
     public ApiResponse<UserResponse> update(UserRequest request) {
         User user = userRepository.findByIdAndIsDeletedNot(request.getId(), true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, UserConstant.USER));
-        Set<String> listCode = userRepository.findAllCodesOtherId(request.getId());
-        Set<Long> listRoleDB = roleRepository.findAllId();
-        validate(request, listCode, listRoleDB);
+        Set<String> listRoleDB = roleRepository.findAllPublicId();
+        validate(request, listRoleDB);
         Set<Role> roles = new HashSet<>(
-                roleRepository.findAllById(request.getListRole())
+                roleRepository.findAllOfPermissionPublicId(request.getListRole())
         );
         user.setCode(request.getCode().trim().toUpperCase());
         user.setFullName(request.getFullName().trim());
@@ -280,23 +272,8 @@ public class UserServiceImpl implements UserService {
         batchInsert.add(user);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveUser(List<User> batchInsert) {
-        try {
-            userRepository.saveAll(batchInsert);
-        } catch (DataIntegrityViolationException e) {
-            for (User user : batchInsert) {
-                try {
-                    userRepository.save(user);
-                }  catch (DataIntegrityViolationException ex) {
-                    log.warn("Duplicate detected: {}", user.getCode());
-                }
-            }
-        }
-    }
-
     private void validateRows(Sheet sheet, Set<String> listRoleDB, Set<String> listUserDB) {
-        int BATCH_SIZE = 5;
+        int BATCH_SIZE = 500;
         List<User> batchInsert = new ArrayList<>();
         for(int i = 1; i <= sheet.getLastRowNum(); i++) {
             List<String> errorMsg = new ArrayList<>();
@@ -322,7 +299,7 @@ public class UserServiceImpl implements UserService {
                 collectUser(code, password, fullName, batchInsert, listRole);
                 listUserDB.add(code.trim().toUpperCase());
                 if(batchInsert.size() >= BATCH_SIZE) {
-                    self.saveUser(batchInsert);
+                    userImport.saveUser(batchInsert);
                     batchInsert.clear();
                 }
                 String errorMsgStr = AppConstant.SUCCESS_FILE;
@@ -330,7 +307,7 @@ public class UserServiceImpl implements UserService {
             }
         }
         if(!batchInsert.isEmpty()) {
-            self.saveUser(batchInsert);
+            userImport.saveUser(batchInsert);
             batchInsert.clear();
         }
     }

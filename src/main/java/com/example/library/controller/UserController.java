@@ -6,6 +6,7 @@ import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.PageResponse;
 import com.example.library.dto.response.UserResponse;
 import com.example.library.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +20,7 @@ import java.io.IOException;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
+@Tag(name = "User Management")
 public class UserController {
     private final UserService userService;
     private static final String FILE_NAME = "Template_user.xlsx";

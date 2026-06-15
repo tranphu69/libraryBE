@@ -18,11 +18,8 @@ public interface UserRepository  extends JpaRepository<User, String>, JpaSpecifi
     @Query("SELECT u.code FROM User u WHERE u.isDeleted <> true")
     Set<String> findAllCodes();
 
-    @Query("SELECT u.email FROM User u WHERE u.isDeleted <> true")
-    Set<String> findAllEmails();
-
-    @Query("SELECT u.code FROM User u WHERE u.isDeleted <> true AND u.id <> :id")
-    Set<String> findAllCodesOtherId(String id);
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.email = :email AND u.isDeleted <> true")
+    boolean existsActiveEmail(@Param("email")String email);
 
     Optional<User> findByIdAndIsDeletedNot(String id, boolean isDeleted);
 
