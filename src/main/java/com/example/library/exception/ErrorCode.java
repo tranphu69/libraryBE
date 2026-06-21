@@ -17,7 +17,10 @@ public enum ErrorCode {
     NOT_FORMAT_FILE("E09", "Tệp không đúng định dạng"),
     FILE_READ_ERROR("E10", "Tệp đang lỗi không thể mở được"),
     CHECK_TEMPLATE("E11", "Tệp hiện tại đang không giống với tệp mẫu vui lòng tải lại"),
-    NOT_DELETE("E12", "{0} đang được sử dụng không thể xóa")
+    NOT_DELETE("E12", "{0} đang được sử dụng không thể xóa"),
+    AUTHENTICATION_ACCOUNT("E13", "Tài khoản hoặc mật khẩu không chính xác"),
+
+    UNAUTHENTICATED("1001", "Token is invalid. Error: {0}"),
     ;
     private final String code;
     private final String message;

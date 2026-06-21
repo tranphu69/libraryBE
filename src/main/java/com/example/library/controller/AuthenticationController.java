@@ -1,9 +1,12 @@
 package com.example.library.controller;
 
 import com.example.library.dto.request.AuthenticationRequest;
+import com.example.library.dto.request.IntrospectRequest;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthenticationResponse;
+import com.example.library.dto.response.IntrospectResponse;
 import com.example.library.service.AuthenticationService;
+import com.nimbusds.jose.JOSEException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.text.ParseException;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,5 +27,10 @@ public class AuthenticationController {
     @PostMapping("/log-in")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> logIn(@RequestBody AuthenticationRequest request) {
         return ResponseEntity.ok(authenticationService.logIn(request));
+    }
+
+    @PostMapping("/introspect")
+    public ResponseEntity<ApiResponse<IntrospectResponse>> introspect(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
+        return ResponseEntity.ok(authenticationService.introspect(request));
     }
 }

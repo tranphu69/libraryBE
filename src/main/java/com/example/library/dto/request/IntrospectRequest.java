@@ -1,4 +1,4 @@
-package com.example.library.dto.response;
+package com.example.library.dto.request;
 
 import lombok.*;
 
@@ -7,6 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AuthenticationResponse {
+public class IntrospectRequest {
     private String token;
 }
