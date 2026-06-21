@@ -33,9 +33,10 @@ import java.util.Date;
 @Service
 @Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
-    private static final long VALID_DURATION = 3600;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    @Value("${jwt.access-token-expiry}")
+    protected long validDuration;
     @Value("${jwt.signerKey}")
     protected String signerKey;
 
@@ -45,7 +46,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .subject(username)
                 .issuer("library.com")
                 .issueTime(new Date(Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()))
-                .expirationTime(new Date(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
+                .expirationTime(new Date(Instant.now().plus(validDuration, ChronoUnit.SECONDS).toEpochMilli()))
                 .claim("customClaim", "Custom")
                 .build();
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
