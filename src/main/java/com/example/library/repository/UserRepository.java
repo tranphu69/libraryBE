@@ -23,6 +23,8 @@ public interface UserRepository  extends JpaRepository<User, String>, JpaSpecifi
 
     Optional<User> findByIdAndIsDeletedNot(String id, boolean isDeleted);
 
+    Optional<User> findByCodeAndIsDeletedNot(String code, boolean isDeleted);
+
     @Query("SELECT u FROM User u JOIN u.roles r " +
             "WHERE (:code IS NULL OR :code = '' OR LOWER(u.code) LIKE LOWER(CONCAT('%', :code, '%'))) " +
             "AND (:fullName IS NULL OR :fullName = '' OR u.fullName LIKE CONCAT('%', :fullName, '%')) " +
