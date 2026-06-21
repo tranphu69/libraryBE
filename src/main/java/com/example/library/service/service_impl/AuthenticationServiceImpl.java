@@ -1,4 +1,4 @@
-package com.example.library.service.serviceImpl;
+package com.example.library.service.service_impl;
 
 import com.example.library.repository.UserRepository;
 import com.example.library.service.AuthenticationService;

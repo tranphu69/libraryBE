@@ -1,4 +1,4 @@
-package com.example.library.service.serviceImpl;
+package com.example.library.service.service_impl;
 
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
@@ -52,15 +52,16 @@ public class PermissionServiceImpl implements PermissionService {
     private final RoleRepository roleRepository;
     private final PermissionImportImpl permissionImport;
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
-    private final String TEMPLATE_PERMISSION = "template/Template_permission.xlsx";
-    private final int NUMBER_RESULT = 4;
+    private static final String TEMPLATE_PERMISSION = "template/Template_permission.xlsx";
+    private static final int NUMBER_RESULT = 4;
+    private static final String REGEX = "\\w+";
 
     private void validate(PermissionRequest request) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, PermissionConstant.CODE);
         } else if(DataUtils.maxLength(request.getCode(), PermissionConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, PermissionConstant.CODE, PermissionConstant.CODE_LENGTH);
-        } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
+        } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, PermissionConstant.CODE);
         } else if(permissionRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE);
@@ -218,7 +219,7 @@ public class PermissionServiceImpl implements PermissionService {
         } else if(DataUtils.maxLength(code, PermissionConstant.MAX_LENGTH_CODE)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
                     PermissionConstant.CODE, PermissionConstant.CODE_LENGTH));
-        } else if(!code.matches("^[a-zA-Z0-9_]+$")) {
+        } else if(!code.matches(REGEX)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.CODE_CHARACTER, PermissionConstant.CODE));
         } else if(listPermissionDB.contains(code.trim().toUpperCase())) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE));
@@ -256,7 +257,6 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     private void validateRows(Sheet sheet, Set<String> listPermissionDB) {
-        int BATCH_SIZE = 500;
         List<Permission> batchInsert = new ArrayList<>();
         for(int i = 1; i <= sheet.getLastRowNum(); i++) {
             List<String> errorMsg = new ArrayList<>();
@@ -277,7 +277,7 @@ public class PermissionServiceImpl implements PermissionService {
             } else {
                 collectPermission(code, name, description, Long.parseLong(status), batchInsert);
                 listPermissionDB.add(code.trim().toUpperCase());
-                if(batchInsert.size() >= BATCH_SIZE) {
+                if(batchInsert.size() >= 500) {
                     permissionImport.savePermission(batchInsert);
                     batchInsert.clear();
                 }

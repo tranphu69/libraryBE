@@ -1,8 +1,7 @@
-package com.example.library.service.serviceImpl;
+package com.example.library.service.service_impl;
 
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
-import com.example.library.constant.RoleConstant;
 import com.example.library.constant.UserConstant;
 import com.example.library.domain.Role;
 import com.example.library.domain.User;
@@ -57,15 +56,15 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-    private final String TEMPLATE_USER_IMPORT = "template/Template_user_import.xlsx";
-    private final int NUMBER_RESULT = 4;
+    private static final int NUMBER_RESULT = 4;
+    private static final String REGEX = "\\w+";
 
     private void validate(UserRequest request, Set<String> listRoleDB) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, UserConstant.CODE);
         } else if(DataUtils.maxLength(request.getCode(), UserConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, UserConstant.CODE, UserConstant.CODE_LENGTH);
-        } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
+        } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, UserConstant.CODE);
         } else if(userRepository.existsActiveEmail(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, UserConstant.CODE);
@@ -189,7 +188,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void downloadTemplate(HttpServletResponse response) throws IOException {
-        ClassPathResource template = new ClassPathResource(TEMPLATE_USER_IMPORT);
+        ClassPathResource template = new ClassPathResource("template/Template_user_import.xlsx");
         XSSFWorkbook workbook = new XSSFWorkbook(template.getInputStream());
         ServletOutputStream outputStream = response.getOutputStream();
         List<Role> listStatusActive = roleRepository.getAllStatusActive();
@@ -209,8 +208,7 @@ public class UserServiceImpl implements UserService {
     public void export(UserPageRequest request, HttpServletResponse response) throws IOException {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=Export_role_" + LocalDate.now() + ".xlsx");
-        String TEMPLATE_USER_EXPORT = "template/Template_user_export.xlsx";
-        ClassPathResource template = new ClassPathResource(TEMPLATE_USER_EXPORT);
+        ClassPathResource template = new ClassPathResource("template/Template_user_export.xlsx");
         try (Workbook workbook = new XSSFWorkbook(template.getInputStream());
              ServletOutputStream out = response.getOutputStream()) {
             List<User> users = userRepository.searchExport(request.getCode(), request.getFullName(), request.getEmail(), request.getListRole());
@@ -239,7 +237,7 @@ public class UserServiceImpl implements UserService {
         } else if(DataUtils.maxLength(code, UserConstant.MAX_LENGTH_CODE)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH, UserConstant.CODE,
                     UserConstant.CODE_LENGTH));
-        } else if(!code.matches("^[a-zA-Z0-9_]+$")) {
+        } else if(!code.matches(REGEX)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.CODE_CHARACTER, UserConstant.CODE));
         } else if(listUserDB.contains(code.trim().toUpperCase())) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_DUPLICATE, UserConstant.CODE));
@@ -283,7 +281,6 @@ public class UserServiceImpl implements UserService {
     }
 
     private void validateRows(Sheet sheet, Set<String> listRoleDB, Set<String> listUserDB) {
-        int BATCH_SIZE = 500;
         List<User> batchInsert = new ArrayList<>();
         for(int i = 1; i <= sheet.getLastRowNum(); i++) {
             List<String> errorMsg = new ArrayList<>();
@@ -308,7 +305,7 @@ public class UserServiceImpl implements UserService {
             } else {
                 collectUser(code, password, fullName, batchInsert, listRole);
                 listUserDB.add(code.trim().toUpperCase());
-                if(batchInsert.size() >= BATCH_SIZE) {
+                if(batchInsert.size() >= 500) {
                     userImport.saveUser(batchInsert);
                     batchInsert.clear();
                 }
@@ -350,7 +347,7 @@ public class UserServiceImpl implements UserService {
     public byte[] importFile(MultipartFile file) {
         log.info("Starting import users from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
-        if(file.getSize() > RoleConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
+        if(file.getSize() > UserConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
         if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
         final byte[] fileBytes;
         try {
@@ -358,7 +355,7 @@ public class UserServiceImpl implements UserService {
         } catch(IOException e) {
             throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
         }
-        try(InputStream templateIs = new ClassPathResource(TEMPLATE_USER_IMPORT).getInputStream()) {
+        try(InputStream templateIs = new ClassPathResource("template/Template_user_import.xlsx").getInputStream()) {
             ExcelUtils.validateHeaders(templateIs, new ByteArrayInputStream(fileBytes));
             byte[] result = buildResultWorkbook(fileBytes);
             log.info("Import users completed successfully");

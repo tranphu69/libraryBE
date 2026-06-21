@@ -1,4 +1,4 @@
-package com.example.library.service.serviceImpl;
+package com.example.library.service.service_impl;
 
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
@@ -51,16 +51,17 @@ public class RoleServiceImpl implements RoleService {
     private final RoleMapper roleMapper;
     private final PermissionRepository permissionRepository;
     private final RoleImportImpl roleImport;
-    private final String TEMPLATE_ROLE = "template/Template_role.xlsx";
+    private static final String TEMPLATE_ROLE = "template/Template_role.xlsx";
     private final List<Long> listStatus = Arrays.asList(1L, 0L);
-    private final int NUMBER_RESULT = 5;
+    private static final int NUMBER_RESULT = 5;
+    private static final String REGEX = "\\w+";
 
     private void validate(RoleRequest request, Set<String> listIdPermissionDB) {
         if(DataUtils.isBlank(request.getCode())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, RoleConstant.CODE);
         } else if(DataUtils.maxLength(request.getCode(), RoleConstant.MAX_LENGTH_CODE)) {
             throw new BusinessException(ErrorCode.NOT_LENGTH, RoleConstant.CODE, RoleConstant.CODE_LENGTH);
-        } else if(!request.getCode().matches("^[a-zA-Z0-9_]+$")) {
+        } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, RoleConstant.CODE);
         } else if(roleRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE);
@@ -243,18 +244,7 @@ public class RoleServiceImpl implements RoleService {
         }
     }
 
-    private void validateRowError(Set<String> listPermissionDB, Set<String> listRoleDB, List<String> errorMsg,
-                                  String code, String name, String description, String status, Set<String> result) {
-        if(DataUtils.isBlank(code)) {
-            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.CODE));
-        } else if(DataUtils.maxLength(code, RoleConstant.MAX_LENGTH_CODE)) {
-            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
-                    RoleConstant.CODE, RoleConstant.CODE_LENGTH));
-        } else if(!code.matches("^[a-zA-Z0-9_]+$")) {
-            errorMsg.add(DataUtils.strConcatenation(ErrorCode.CODE_CHARACTER, RoleConstant.CODE));
-        } else if(listRoleDB.contains(code.trim().toUpperCase())) {
-            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE));
-        }
+    private void validateName(String name, List<String> errorMsg, String description) {
         if(DataUtils.isBlank(name)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.NAME));
         } else if(DataUtils.maxLength(name, RoleConstant.MAX_LENGTH_NAME)) {
@@ -264,6 +254,20 @@ public class RoleServiceImpl implements RoleService {
         if(DataUtils.maxLengthNotEmpty(description, RoleConstant.MAX_LENGTH_DESCRIPTION)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
                     RoleConstant.DESCRIPTION, RoleConstant.DESCRIPTION_LENGTH));
+        }
+    }
+
+    private void validateRowError(Set<String> listPermissionDB, Set<String> listRoleDB, List<String> errorMsg,
+                                  String code, String status, Set<String> result) {
+        if(DataUtils.isBlank(code)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.CODE));
+        } else if(DataUtils.maxLength(code, RoleConstant.MAX_LENGTH_CODE)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_LENGTH,
+                    RoleConstant.CODE, RoleConstant.CODE_LENGTH));
+        } else if(!code.matches(REGEX)) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.CODE_CHARACTER, RoleConstant.CODE));
+        } else if(listRoleDB.contains(code.trim().toUpperCase())) {
+            errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE));
         }
         if(DataUtils.isBlank(status)) {
             errorMsg.add(DataUtils.strConcatenation(ErrorCode.NOT_EMPTY, RoleConstant.STATUS));
@@ -294,7 +298,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
     private void validateRows(Sheet sheet, Set<String> listPermissionDB, Set<String> listRoleDB) {
-        int BATCH_SIZE = 500;
         List<Role> batchInsert = new ArrayList<>();
         for(int i = 1; i <= sheet.getLastRowNum(); i++) {
             List<String> errorMsg = new ArrayList<>();
@@ -313,7 +316,8 @@ public class RoleServiceImpl implements RoleService {
             Set<String> result = Arrays.stream(permissions.split(","))
                     .map(String::trim)
                     .collect(Collectors.toSet());
-            validateRowError(listPermissionDB, listRoleDB, errorMsg, code, name, description, status, result);
+            validateName(name, errorMsg, description);
+            validateRowError(listPermissionDB, listRoleDB, errorMsg, code, status, result);
             Set<Permission> listPermission = permissionRepository.findByCodeInAndStatusNot(result, RoleConstant.DELETED);
             if(!errorMsg.isEmpty()) {
                 String errorMsgStr = String.join(", ", errorMsg);
@@ -321,7 +325,7 @@ public class RoleServiceImpl implements RoleService {
             } else {
                 collectRole(code, name, description, Long.parseLong(status), batchInsert, listPermission);
                 listRoleDB.add(code.trim().toUpperCase());
-                if(batchInsert.size() >= BATCH_SIZE) {
+                if(batchInsert.size() >= 500) {
                     roleImport.saveRole(batchInsert);
                     batchInsert.clear();
                 }

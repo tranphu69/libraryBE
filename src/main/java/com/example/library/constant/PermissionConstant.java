@@ -1,8 +1,9 @@
 package com.example.library.constant;
 
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PermissionConstant {
     public static final String CODE = "Mã quyền";
     public static final String CODE_LENGTH = "100";
@@ -24,5 +25,5 @@ public class PermissionConstant {
     public static final int MAX_LENGTH_NAME = 255;
     public static final int MAX_LENGTH_DESCRIPTION = 1000;
 
-    public static final long MAX_FILE_SIZE = 1024 * 1024;
+    public static final long MAX_FILE_SIZE = 1024L * 1024;
 }

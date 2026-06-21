@@ -1,4 +1,4 @@
-package com.example.library.repository.repositoryImpl;
+package com.example.library.repository.repository_impl;
 
 import com.example.library.repository.UserRepositoryCustom;
 
