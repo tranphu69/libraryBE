@@ -1,6 +1,7 @@
 package com.example.library.service.service_impl;
 
 import com.example.library.constant.AppConstant;
+import com.example.library.domain.Permission;
 import com.example.library.domain.User;
 import com.example.library.dto.request.AuthenticationRequest;
 import com.example.library.dto.request.IntrospectRequest;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -34,20 +36,31 @@ import java.util.Date;
 @Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
+    
     private final PasswordEncoder passwordEncoder;
     @Value("${jwt.access-token-expiry}")
     protected long validDuration;
     @Value("${jwt.signerKey}")
     protected String signerKey;
 
-    private String generateToke(String username) {
+    private String buildScope(User user) {
+        return user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getCode)
+                .distinct()
+                .sorted()
+                .reduce((a, b) -> a + " " + b)
+                .orElse("");
+    }
+
+    private String generateToken(User user) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(username)
+                .subject(user.getCode())
                 .issuer("library.com")
-                .issueTime(new Date(Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()))
+                .issueTime(new Date())
                 .expirationTime(new Date(Instant.now().plus(validDuration, ChronoUnit.SECONDS).toEpochMilli()))
-                .claim("customClaim", "Custom")
+                .claim("scope", buildScope(user))
                 .build();
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
         JWSObject jwsObject = new JWSObject(header, payload);
@@ -60,6 +73,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse<AuthenticationResponse> logIn(AuthenticationRequest request) {
         User user = userRepository.findByCodeAndIsDeletedNot(request.getUsername(), true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
@@ -67,7 +81,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if(!authenticated) {
             throw new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT);
         }
-        String token = generateToke(request.getUsername());
+        String token = generateToken(user);
         AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
                 .token(token)
                 .build();

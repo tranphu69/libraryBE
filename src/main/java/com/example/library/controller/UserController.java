@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,21 +27,25 @@ public class UserController {
     private static final String FILE_NAME = "Template_user.xlsx";
 
     @PostMapping
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<ApiResponse<UserResponse>> create(@RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.create(request));
     }
 
     @PutMapping
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<ApiResponse<UserResponse>> update(@RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.update(request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('USER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
         return ResponseEntity.ok(userService.delete(id));
     }
 
     @PostMapping("/search")
+    @PreAuthorize("hasAuthority('USER_SEARCH')")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> search(@RequestBody UserPageRequest request) {
         return ResponseEntity.ok(userService.search(request));
     }
@@ -53,11 +58,13 @@ public class UserController {
     }
 
     @PostMapping("/export")
+    @PreAuthorize("hasAuthority('USER_SEARCH')")
     public void export(UserPageRequest request, HttpServletResponse response) throws IOException {
         userService.export(request, response);
     }
 
     @PostMapping("/import")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<Object> importFile(@RequestParam MultipartFile file) {
         byte[] errorFile = userService.importFile(file);
         return ResponseEntity.ok()

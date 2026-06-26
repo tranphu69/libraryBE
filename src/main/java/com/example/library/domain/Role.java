@@ -38,8 +38,6 @@ public class Role {
     private String updatedBy;
     @Column(name = "PUBLIC_ID")
     private String publicId;
-    @Column(name = "IS_SUPER")
-    private boolean isSuper = false;
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "ROLES_PERMISSIONS",

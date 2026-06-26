@@ -23,6 +23,10 @@ public interface UserRepository  extends JpaRepository<User, String>, JpaSpecifi
 
     Optional<User> findByIdAndIsDeletedNot(String id, boolean isDeleted);
 
+    @Query("SELECT DISTINCT u FROM User u " +
+            "LEFT JOIN FETCH u.roles r " +
+            "LEFT JOIN FETCH r.permissions " +
+            "WHERE u.code = :code AND u.isDeleted <> true")
     Optional<User> findByCodeAndIsDeletedNot(String code, boolean isDeleted);
 
     @Query("SELECT u FROM User u JOIN u.roles r " +
