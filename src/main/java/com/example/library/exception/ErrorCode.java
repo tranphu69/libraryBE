@@ -1,6 +1,8 @@
 package com.example.library.exception;
 
 import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 import java.text.MessageFormat;
 
@@ -20,14 +22,24 @@ public enum ErrorCode {
     NOT_DELETE("E12", "{0} đang được sử dụng không thể xóa"),
     AUTHENTICATION_ACCOUNT("E13", "Tài khoản hoặc mật khẩu không chính xác"),
 
+    ERROR_SYSTEM("1000", "Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
     UNAUTHENTICATED("1001", "Token is invalid. Error: {0}"),
+    UNAUTHENTICATED_FORBIDDEN("1002", "Bạn không có quyền truy cập tài nguyên này", HttpStatus.FORBIDDEN),
+    UNAUTHENTICATED_UNAUTHORIZED("1003", "Bạn chưa đăng nhập hoặc token không hợp lệ", HttpStatus.UNAUTHORIZED)
     ;
     private final String code;
     private final String message;
+    private HttpStatusCode statusCode;
 
     ErrorCode(String code, String message) {
         this.code = code;
         this.message = message;
+    }
+
+    ErrorCode(String code, String message, HttpStatusCode statusCode) {
+        this.code = code;
+        this.message = message;
+        this.statusCode = statusCode;
     }
 
     public String formatMessage(Object... args) {

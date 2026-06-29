@@ -30,33 +30,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
         return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
-                .body(ResponseUtils.error("403", "Bạn không có quyền truy cập tài nguyên này"));
-//        .body(ResponseUtils.error(
-//                ErrorCode.ACCESS_DENIED.getCode(),
-//                ErrorCode.ACCESS_DENIED.getMessage()
-//        ));
+                .status(ErrorCode.UNAUTHENTICATED_FORBIDDEN.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED_FORBIDDEN.getCode(), ErrorCode.UNAUTHENTICATED_FORBIDDEN.getMessage()));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(ResponseUtils.error("401", "Bạn chưa đăng nhập hoặc token không hợp lệ"));
-//        .body(ResponseUtils.error(
-//                ErrorCode.UNAUTHORIZED.getCode(),
-//                ErrorCode.UNAUTHORIZED.getMessage()
-//        ));
+                .status(ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getCode(), ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ResponseUtils.error("500", "Lỗi hệ thống, vui lòng thử lại sau"));
-//        .body(ResponseUtils.error(
-//                ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
-//                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
-//        ));
+                .status(ErrorCode.ERROR_SYSTEM.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.ERROR_SYSTEM.getCode(), ErrorCode.ERROR_SYSTEM.getMessage()));
     }
 }
