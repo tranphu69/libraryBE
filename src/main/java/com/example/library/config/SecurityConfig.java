@@ -23,7 +23,8 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    private static final String[] PUBLIC_ENDPOINT = {"/api/authentication/log-in", "/api/authentication/introspect"};
+    private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/log-in", "/api/authentication/introspect", "/api/authentication/profile"};
+    private static final String[] AUTHENTICATED_ENDPOINT_GET = {"/api/authentication/profile"};
     @Value("${jwt.signerKey}")
     protected String signerKey;
 
@@ -35,7 +36,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
-                request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT).permitAll()
+                request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT_POST).permitAll()
+                        .requestMatchers(HttpMethod.GET, AUTHENTICATED_ENDPOINT_GET).authenticated()
                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())

@@ -8,9 +8,11 @@ import com.example.library.dto.request.IntrospectRequest;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthenticationResponse;
 import com.example.library.dto.response.IntrospectResponse;
+import com.example.library.dto.response.UserResponse;
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
 import com.example.library.exception.ResourceNotFoundException;
+import com.example.library.mapper.UserMapper;
 import com.example.library.repository.UserRepository;
 import com.example.library.service.AuthenticationService;
 import com.example.library.util.ResponseUtils;
@@ -22,6 +24,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +39,7 @@ import java.util.Date;
 @Slf4j
 public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
-    
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     @Value("${jwt.access-token-expiry}")
     protected long validDuration;
@@ -96,6 +99,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         IntrospectResponse response = IntrospectResponse.builder()
                 .valid(signedJWT.verify(verifier) && expiryTime.after(new Date()))
                 .build();
+        return ResponseUtils.success(response, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public ApiResponse<UserResponse> profile() {
+        var context = SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+        User byUsername = userRepository.findByCodeAndIsDeletedNot(name, true)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
+        UserResponse response = userMapper.toUserResponse(byUsername);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 }
