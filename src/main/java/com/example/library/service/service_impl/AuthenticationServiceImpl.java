@@ -106,9 +106,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         JWSVerifier verifier = new MACVerifier(signerKey.getBytes());
         SignedJWT signedJWT = SignedJWT.parse(request.getToken());
         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-        IntrospectResponse response = IntrospectResponse.builder()
-                .valid(signedJWT.verify(verifier) && expiryTime.after(new Date()))
-                .build();
+        if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
+            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN_EXPIRES);
+        IntrospectResponse response = new IntrospectResponse();
+        response.setValid(!invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()));
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
