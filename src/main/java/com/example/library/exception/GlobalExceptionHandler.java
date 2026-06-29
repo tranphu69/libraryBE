@@ -41,10 +41,10 @@ public class GlobalExceptionHandler {
                 .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getCode(), ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getMessage()));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        return ResponseEntity
-                .status(ErrorCode.ERROR_SYSTEM.getStatusCode())
-                .body(ResponseUtils.error(ErrorCode.ERROR_SYSTEM.getCode(), ErrorCode.ERROR_SYSTEM.getMessage()));
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+//        return ResponseEntity
+//                .status(ErrorCode.ERROR_SYSTEM.getStatusCode())
+//                .body(ResponseUtils.error(ErrorCode.ERROR_SYSTEM.getCode(), ErrorCode.ERROR_SYSTEM.getMessage()));
+//    }
 }

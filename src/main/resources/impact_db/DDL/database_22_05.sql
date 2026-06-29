@@ -67,4 +67,7 @@ CREATE TABLE library.USERS (
     UNIQUE KEY uk_users_email (email),
 );
 
-
+CREATE TABLE library.INVALIDATED_TOKEN (
+    JTI      CHAR(36) PRIMARY KEY,
+    EXPIRES_AT DATETIME NOT NULL
+);

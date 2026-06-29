@@ -2,6 +2,7 @@ package com.example.library.controller;
 
 import com.example.library.dto.request.AuthenticationRequest;
 import com.example.library.dto.request.IntrospectRequest;
+import com.example.library.dto.request.LogoutRequest;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthenticationResponse;
 import com.example.library.dto.response.IntrospectResponse;
@@ -22,7 +23,7 @@ import java.text.ParseException;
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
-    @PostMapping("/log-in")
+    @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> logIn(@RequestBody AuthenticationRequest request) {
         return ResponseEntity.ok(authenticationService.logIn(request));
     }
@@ -35,5 +36,10 @@ public class AuthenticationController {
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserResponse>> profile() {
         return ResponseEntity.ok(authenticationService.profile());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request)  throws ParseException, JOSEException {
+        return ResponseEntity.ok(authenticationService.logout(request));
     }
 }

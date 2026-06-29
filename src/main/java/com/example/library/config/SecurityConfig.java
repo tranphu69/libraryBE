@@ -23,8 +23,9 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/log-in", "/api/authentication/introspect", "/api/authentication/profile"};
+    private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/login", "/api/authentication/introspect", "/api/authentication/profile"};
     private static final String[] AUTHENTICATED_ENDPOINT_GET = {"/api/authentication/profile"};
+    private static final String[] AUTHENTICATED_ENDPOINT_POST = {"/api/authentication/logout"};
     @Value("${jwt.signerKey}")
     protected String signerKey;
 
@@ -38,6 +39,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(request ->
                 request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, AUTHENTICATED_ENDPOINT_GET).authenticated()
+                        .requestMatchers(HttpMethod.POST, AUTHENTICATED_ENDPOINT_POST).authenticated()
                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())

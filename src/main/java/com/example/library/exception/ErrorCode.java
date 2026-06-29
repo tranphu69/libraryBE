@@ -21,6 +21,8 @@ public enum ErrorCode {
     CHECK_TEMPLATE("E11", "Tệp hiện tại đang không giống với tệp mẫu vui lòng tải lại"),
     NOT_DELETE("E12", "{0} đang được sử dụng không thể xóa"),
     AUTHENTICATION_ACCOUNT("E13", "Tài khoản hoặc mật khẩu không chính xác"),
+    AUTHENTICATION_TOKEN_EXPIRES("E14", "Token đã hết hạn"),
+    NOT_TOKEN("E15", "Token không được để trống"),
 
     ERROR_SYSTEM("1000", "Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
     UNAUTHENTICATED("1001", "Token is invalid. Error: {0}"),
