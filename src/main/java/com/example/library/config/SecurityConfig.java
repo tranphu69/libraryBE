@@ -18,9 +18,9 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/login", "/api/authentication/introspect", "/api/authentication/profile"};
+    private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/login", "/api/authentication/introspect"};
     private static final String[] AUTHENTICATED_ENDPOINT_GET = {"/api/authentication/profile"};
-    private static final String[] AUTHENTICATED_ENDPOINT_POST = {"/api/authentication/logout"};
+    private static final String[] AUTHENTICATED_ENDPOINT_POST = {"/api/authentication/logout", "/api/authentication/refresh"};
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
 

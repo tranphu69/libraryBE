@@ -7,6 +7,7 @@ import com.example.library.domain.User;
 import com.example.library.dto.request.AuthenticationRequest;
 import com.example.library.dto.request.IntrospectRequest;
 import com.example.library.dto.request.LogoutRequest;
+import com.example.library.dto.request.RefreshRequest;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthenticationResponse;
 import com.example.library.dto.response.IntrospectResponse;
@@ -147,5 +148,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .build();
         invalidatedTokenRepository.save(invalidatedToken);
         return ResponseUtils.success(null, AppConstant.SUCCESS);
+    }
+
+    public ApiResponse<AuthenticationResponse> refreshToken(RefreshRequest request) throws JOSEException, ParseException {
+        var signToken = verifyToken(request.getToken());
+        String jit = signToken.getJWTClaimsSet().getJWTID();
+        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .jti(jit)
+                .expiresAt(expiryTime.toInstant())
+                .build();
+        invalidatedTokenRepository.save(invalidatedToken);
+        String username = signToken.getJWTClaimsSet().getSubject();
+        User user = userRepository.findByCodeAndIsDeletedNot(username, true)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
+        String token = generateToken(user);
+        AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
+                .token(token)
+                .build();
+        return ResponseUtils.success(authenticationResponse, AppConstant.SUCCESS);
     }
 }

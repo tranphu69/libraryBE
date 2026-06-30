@@ -3,6 +3,7 @@ package com.example.library.controller;
 import com.example.library.dto.request.AuthenticationRequest;
 import com.example.library.dto.request.IntrospectRequest;
 import com.example.library.dto.request.LogoutRequest;
+import com.example.library.dto.request.RefreshRequest;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthenticationResponse;
 import com.example.library.dto.response.IntrospectResponse;
@@ -31,6 +32,11 @@ public class AuthenticationController {
     @PostMapping("/introspect")
     public ResponseEntity<ApiResponse<IntrospectResponse>> introspect(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
         return ResponseEntity.ok(authenticationService.introspect(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(@RequestBody RefreshRequest request) throws ParseException, JOSEException {
+        return ResponseEntity.ok(authenticationService.refreshToken(request));
     }
 
     @GetMapping("/profile")
