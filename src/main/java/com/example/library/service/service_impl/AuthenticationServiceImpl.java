@@ -50,6 +50,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final InvalidatedTokenRepository invalidatedTokenRepository;
     @Value("${jwt.access-token-expiry}")
     protected long validDuration;
+    @Value("${jwt.refresh-token-expiry}")
+    protected long refreshableDuration;
     @Value("${jwt.signerKey}")
     protected String signerKey;
 
@@ -127,7 +129,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(signerKey.getBytes());
         SignedJWT signedJWT = SignedJWT.parse(token);
-        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        Date expiryTime = new Date(signedJWT.getJWTClaimsSet().getIssueTime().toInstant().plus(refreshableDuration, ChronoUnit.SECONDS).toEpochMilli());
         if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
             throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
         return signedJWT;
