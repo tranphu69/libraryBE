@@ -1,6 +1,5 @@
 package com.example.library.config;
 
-import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
 import com.example.library.repository.InvalidatedTokenRepository;
 import com.nimbusds.jose.JOSEException;

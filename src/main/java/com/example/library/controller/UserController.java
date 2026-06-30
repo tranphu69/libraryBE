@@ -45,7 +45,7 @@ public class UserController {
     }
 
     @PostMapping("/search")
-    @PreAuthorize("hasAuthority('TEST5')")
+    @PreAuthorize("hasAuthority('USER_SEARCH')")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> search(@RequestBody UserPageRequest request) {
         return ResponseEntity.ok(userService.search(request));
     }

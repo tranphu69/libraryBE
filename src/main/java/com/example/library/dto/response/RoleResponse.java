@@ -1,6 +1,5 @@
 package com.example.library.dto.response;
 
-import com.example.library.domain.Permission;
 import lombok.*;
 
 import java.time.LocalDateTime;

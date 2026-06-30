@@ -348,7 +348,7 @@ public class UserServiceImpl implements UserService {
         log.info("Starting import users from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > UserConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
-        if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+        if(ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
         final byte[] fileBytes;
         try {
             fileBytes = file.getBytes();

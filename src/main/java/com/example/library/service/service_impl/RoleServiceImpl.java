@@ -368,7 +368,7 @@ public class RoleServiceImpl implements RoleService {
         log.info("Starting import roles from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > RoleConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
-        if(!ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+        if(ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
         final byte[] fileBytes;
         try {
             fileBytes = file.getBytes();

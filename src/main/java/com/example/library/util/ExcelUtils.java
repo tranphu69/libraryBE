@@ -2,10 +2,7 @@ package com.example.library.util;
 
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
-import jakarta.servlet.ServletOutputStream;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -20,8 +17,8 @@ import java.util.function.Function;
 
 public class ExcelUtils {
     public static boolean hasExcelFormat(MultipartFile file) {
-        return Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xls") ||
-                file.getOriginalFilename().endsWith(".xlsx");
+        return !Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xls") ||
+                !file.getOriginalFilename().endsWith(".xlsx");
     }
 
     public static String getCellValue(Cell cell) {
