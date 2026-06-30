@@ -30,21 +30,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
         return ResponseEntity
-                .status(ErrorCode.UNAUTHENTICATED_FORBIDDEN.getStatusCode())
-                .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED_FORBIDDEN.getCode(), ErrorCode.UNAUTHENTICATED_FORBIDDEN.getMessage()));
+                .status(ErrorCode.UNAUTHORIZED.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.UNAUTHORIZED.getCode(), ErrorCode.UNAUTHORIZED.getMessage()));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         return ResponseEntity
-                .status(ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getStatusCode())
-                .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getCode(), ErrorCode.UNAUTHENTICATED_UNAUTHORIZED.getMessage()));
+                .status(ErrorCode.UNAUTHENTICATED.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED.getCode(), ErrorCode.UNAUTHENTICATED.getMessage()));
     }
 
-//    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-//        return ResponseEntity
-//                .status(ErrorCode.ERROR_SYSTEM.getStatusCode())
-//                .body(ResponseUtils.error(ErrorCode.ERROR_SYSTEM.getCode(), ErrorCode.ERROR_SYSTEM.getMessage()));
-//    }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        return ResponseEntity
+                .status(ErrorCode.ERROR_SYSTEM.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.ERROR_SYSTEM.getCode(), ErrorCode.ERROR_SYSTEM.getMessage()));
+    }
 }

@@ -78,7 +78,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             jwsObject.sign(new MACSigner(signerKey.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
-            throw new BusinessException(ErrorCode.UNAUTHENTICATED, e);
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN, e);
         }
     }
 
@@ -107,7 +107,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         SignedJWT signedJWT = SignedJWT.parse(request.getToken());
         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
         if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
-            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN_EXPIRES);
+            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
         IntrospectResponse response = new IntrospectResponse();
         response.setValid(!invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()));
         return ResponseUtils.success(response, AppConstant.SUCCESS);
@@ -128,7 +128,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         SignedJWT signedJWT = SignedJWT.parse(token);
         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
         if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
-            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN_EXPIRES);
+            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
         return signedJWT;
     }
 

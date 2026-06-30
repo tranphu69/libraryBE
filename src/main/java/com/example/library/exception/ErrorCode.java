@@ -21,13 +21,13 @@ public enum ErrorCode {
     CHECK_TEMPLATE("E11", "Tệp hiện tại đang không giống với tệp mẫu vui lòng tải lại"),
     NOT_DELETE("E12", "{0} đang được sử dụng không thể xóa"),
     AUTHENTICATION_ACCOUNT("E13", "Tài khoản hoặc mật khẩu không chính xác"),
-    AUTHENTICATION_TOKEN_EXPIRES("E14", "Token đã hết hạn"),
+    AUTHENTICATION_TOKEN("E14", "Token không hợp lệ"),
     NOT_TOKEN("E15", "Token không được để trống"),
 
     ERROR_SYSTEM("1000", "Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
-    UNAUTHENTICATED("1001", "Token is invalid. Error: {0}"),
-    UNAUTHENTICATED_FORBIDDEN("1002", "Bạn không có quyền truy cập tài nguyên này", HttpStatus.FORBIDDEN),
-    UNAUTHENTICATED_UNAUTHORIZED("1003", "Bạn chưa đăng nhập hoặc token không hợp lệ", HttpStatus.UNAUTHORIZED)
+    UNAUTHENTICATED_TOKEN("1001", "Token is invalid. Error: {0}"),
+    UNAUTHORIZED("1002", "Bạn không có quyền truy cập tài nguyên này", HttpStatus.FORBIDDEN),
+    UNAUTHENTICATED("1003", "Bạn chưa đăng nhập hoặc token không hợp lệ", HttpStatus.UNAUTHORIZED)
     ;
     private final String code;
     private final String message;
