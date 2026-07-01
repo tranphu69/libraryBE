@@ -75,7 +75,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElse("");
     }
 
-    private String getRefreshSignerKey(User user) {
+    private String generateRefreshToken(User user) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getCode())
@@ -89,7 +89,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             jwsObject.sign(new MACSigner(refreshSignerKey.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
-            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN, e);
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN, e.getMessage());
         }
     }
 
@@ -119,7 +119,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             jwsObject.sign(new MACSigner(accessSignerKey.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
-            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN, e);
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN, e.getMessage());
         }
     }
 
@@ -133,15 +133,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT);
         }
         String accessToken = generateAccessToken(user);
-        String refreshToken = getRefreshSignerKey(user);
-        refreshTokenRepository.deleteByUserId(user.getId());
-        RefreshToken refreshTokenData = RefreshToken.builder()
-                .tokenHash(hash(refreshToken))
-                .user(user)
-                .expiresAt(Instant.now().plus(refreshDuration, ChronoUnit.SECONDS))
-                .createdAt(LocalDateTime.now())
-                .build();
-        refreshTokenRepository.save(refreshTokenData);
+        String refreshToken = generateRefreshToken(user);
+        RefreshToken token = refreshTokenRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_TOKEN));
+        token.setTokenHash(hash(refreshToken));
+        token.setUser(user);
+        token.setExpiresAt(Instant.now().plus(refreshDuration, ChronoUnit.SECONDS));
+        token.setCreatedAt(LocalDateTime.now());
+        refreshTokenRepository.save(token);
         AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -222,7 +221,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var signToken = verifyRefreshToken(request.getRefreshToken());
         var accessToken = verifyAccessToken(request.getAccessToken());
         if (!refreshTokenRepository.existsByTokenHash(hash(request.getRefreshToken()))) {
-            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN);
+            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
         }
         String jitAccessToken = accessToken.getJWTClaimsSet().getJWTID();
         Date expiryTimeAccessToken = accessToken.getJWTClaimsSet().getExpirationTime();
@@ -234,9 +233,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String username = signToken.getJWTClaimsSet().getSubject();
         User user = userRepository.findByCodeAndIsDeletedNot(username, true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
-        String token = generateAccessToken(user);
+        String newAccessToken = generateAccessToken(user);
+        String newRefreshToken = generateRefreshToken(user);
+        RefreshToken token = refreshTokenRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_TOKEN));
+        token.setTokenHash(hash(newRefreshToken));
+        token.setUser(user);
+        token.setExpiresAt(Instant.now().plus(refreshDuration, ChronoUnit.SECONDS));
+        token.setCreatedAt(LocalDateTime.now());
+        refreshTokenRepository.save(token);
         AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
-                .accessToken(token)
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
                 .build();
         return ResponseUtils.success(authenticationResponse, AppConstant.SUCCESS);
     }
