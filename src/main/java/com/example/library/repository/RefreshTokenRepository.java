@@ -13,5 +13,7 @@ import java.util.UUID;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long>, JpaSpecificationExecutor<RefreshToken> {
     @Modifying
     @Query("DELETE FROM RefreshToken rt WHERE rt.user.id = :userId")
-    void deleteByUserId(UUID userId);
+    void deleteByUserId(String userId);
+
+    boolean existsByTokenHash(String tokenHash);
 }

@@ -134,6 +134,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         String accessToken = generateAccessToken(user);
         String refreshToken = getRefreshSignerKey(user);
+        refreshTokenRepository.deleteByUserId(user.getId());
         RefreshToken refreshTokenData = RefreshToken.builder()
                 .tokenHash(hash(refreshToken))
                 .user(user)
@@ -173,10 +174,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
-    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+    private SignedJWT verifyAccessToken(String token) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(accessSignerKey.getBytes());
         SignedJWT signedJWT = SignedJWT.parse(token);
-        Date expiryTime = new Date(signedJWT.getJWTClaimsSet().getIssueTime().toInstant().plus(refreshDuration, ChronoUnit.SECONDS).toEpochMilli());
+        Date expiryTime = new Date(signedJWT.getJWTClaimsSet().getIssueTime().toInstant().plus(accessDuration, ChronoUnit.SECONDS).toEpochMilli());
         if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
             throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
         return signedJWT;
@@ -188,7 +189,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if(DataUtils.isBlank(request.getToken())) {
             throw new BusinessException(ErrorCode.NOT_TOKEN);
         }
-        var signToken = verifyToken(request.getToken());
+        var signToken = verifyAccessToken(request.getToken());
         String jit = signToken.getJWTClaimsSet().getJWTID();
         Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
         InvalidatedToken invalidatedToken = InvalidatedToken.builder()
@@ -200,18 +201,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String name = context.getAuthentication().getName();
         User byUsername = userRepository.findByCodeAndIsDeletedNot(name, true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
-        refreshTokenRepository.deleteByUserId(UUID.fromString(byUsername.getId()));
+        refreshTokenRepository.deleteByUserId(byUsername.getId());
         return ResponseUtils.success(null, AppConstant.SUCCESS);
+    }
+
+    private SignedJWT verifyRefreshToken(String token) throws JOSEException, ParseException {
+        JWSVerifier verifier = new MACVerifier(refreshSignerKey.getBytes());
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        Date expiryTime = new Date(signedJWT.getJWTClaimsSet().getIssueTime().toInstant().plus(refreshDuration, ChronoUnit.SECONDS).toEpochMilli());
+        if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
+            throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
+        return signedJWT;
     }
 
     @Override
     public ApiResponse<AuthenticationResponse> refreshToken(RefreshRequest request) throws JOSEException, ParseException {
-        var signToken = verifyToken(request.getToken());
-        String jit = signToken.getJWTClaimsSet().getJWTID();
-        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+        if(DataUtils.isBlank(request.getAccessToken()) || DataUtils.isBlank(request.getRefreshToken())) {
+            throw new BusinessException(ErrorCode.NOT_TOKEN);
+        }
+        var signToken = verifyRefreshToken(request.getRefreshToken());
+        var accessToken = verifyAccessToken(request.getAccessToken());
+        if (!refreshTokenRepository.existsByTokenHash(hash(request.getRefreshToken()))) {
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED_TOKEN);
+        }
+        String jitAccessToken = accessToken.getJWTClaimsSet().getJWTID();
+        Date expiryTimeAccessToken = accessToken.getJWTClaimsSet().getExpirationTime();
         InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .jti(jit)
-                .expiresAt(expiryTime.toInstant())
+                .jti(jitAccessToken)
+                .expiresAt(expiryTimeAccessToken.toInstant())
                 .build();
         invalidatedTokenRepository.save(invalidatedToken);
         String username = signToken.getJWTClaimsSet().getSubject();
