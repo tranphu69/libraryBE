@@ -2,12 +2,15 @@ package com.example.library.exception;
 
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.util.ResponseUtils;
+import com.nimbusds.jose.JOSEException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.text.ParseException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -39,6 +42,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ErrorCode.UNAUTHENTICATED.getStatusCode())
                 .body(ResponseUtils.error(ErrorCode.UNAUTHENTICATED.getCode(), ErrorCode.UNAUTHENTICATED.getMessage()));
+    }
+
+    @ExceptionHandler({ParseException.class, JOSEException.class})
+    public ResponseEntity<ApiResponse<Void>> handleJwtException(Exception ex) {
+        return ResponseEntity
+                .status(ErrorCode.AUTHENTICATION_TOKEN.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.AUTHENTICATION_TOKEN.getCode(), ErrorCode.AUTHENTICATION_TOKEN.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
