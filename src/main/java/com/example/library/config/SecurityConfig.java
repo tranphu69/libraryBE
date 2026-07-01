@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/login", "/api/authentication/introspect", "/api/authentication/refresh"};
+    private static final String[] PUBLIC_ENDPOINT_GET = {"/api/redis/ping"};
     private static final String[] AUTHENTICATED_ENDPOINT_GET = {"/api/authentication/profile"};
     private static final String[] AUTHENTICATED_ENDPOINT_POST = {"/api/authentication/logout"};
     @Autowired
@@ -33,6 +34,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
                 request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT_POST).permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINT_GET).permitAll()
                         .requestMatchers(HttpMethod.GET, AUTHENTICATED_ENDPOINT_GET).authenticated()
                         .requestMatchers(HttpMethod.POST, AUTHENTICATED_ENDPOINT_POST).authenticated()
                         .anyRequest().authenticated());

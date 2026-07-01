@@ -1,0 +1,4 @@
+docker --version
+docker ps
+docker pull redis
+docker run -d --name redisLibrary -p 6379:6379 redis
