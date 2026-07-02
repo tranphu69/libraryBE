@@ -4,5 +4,5 @@ import com.example.library.domain.User;
 
 public interface MfaService {
     String initiateOtpChallenge(User user);
-    User
+    User verifyOtp(String challengeToken, String otp);
 }

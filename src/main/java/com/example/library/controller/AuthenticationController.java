@@ -1,9 +1,6 @@
 package com.example.library.controller;
 
-import com.example.library.dto.request.AuthenticationRequest;
-import com.example.library.dto.request.IntrospectRequest;
-import com.example.library.dto.request.LogoutRequest;
-import com.example.library.dto.request.RefreshRequest;
+import com.example.library.dto.request.*;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthenticationResponse;
 import com.example.library.dto.response.IntrospectResponse;
@@ -27,6 +24,11 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> logIn(@RequestBody AuthenticationRequest request) {
         return ResponseEntity.ok(authenticationService.logIn(request));
+    }
+
+    @PostMapping("/login/verify-otp")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> logIn(@RequestBody VerifyOtpRequest request) {
+        return ResponseEntity.ok(authenticationService.verifyOtpAndLogin(request));
     }
 
     @PostMapping("/introspect")

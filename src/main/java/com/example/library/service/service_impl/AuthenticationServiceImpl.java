@@ -4,10 +4,7 @@ import com.example.library.constant.AppConstant;
 import com.example.library.domain.Permission;
 import com.example.library.domain.RefreshToken;
 import com.example.library.domain.User;
-import com.example.library.dto.request.AuthenticationRequest;
-import com.example.library.dto.request.IntrospectRequest;
-import com.example.library.dto.request.LogoutRequest;
-import com.example.library.dto.request.RefreshRequest;
+import com.example.library.dto.request.*;
 import com.example.library.dto.response.*;
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
@@ -210,6 +207,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
         refreshTokenRepository.deleteByUserId(byUsername.getId());
         return ResponseUtils.success(null, AppConstant.SUCCESS);
+    }
+
+    @Override
+    public ApiResponse<AuthenticationResponse> verifyOtpAndLogin(VerifyOtpRequest request) {
+        User user = mfaService.verifyOtp(request.getChallengeToken(), request.getOtp());
+        AuthenticationResponse response = issueTokens(user);
+        return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
     private SignedJWT verifyRefreshToken(String token) throws JOSEException, ParseException {

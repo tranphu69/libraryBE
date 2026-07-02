@@ -23,6 +23,10 @@ public enum ErrorCode {
     AUTHENTICATION_ACCOUNT("E13", "Tài khoản hoặc mật khẩu không chính xác"),
     AUTHENTICATION_TOKEN("E14", "Token không hợp lệ"),
     NOT_TOKEN("E15", "Token không được để trống"),
+    FAILED_EMAIL("E16", "Gửi email thất bại"),
+    MFA_CHALLENGE_INVALID("E17", "Yêu cầu xác thực đa yếu tố (MFA) không hợp lệ hoặc đã hết hạn"),
+    MFA_TOO_MANY_ATTEMPTS("E18", "Quá nhiều lần nhập mã OTP không hợp lệ. Vui lòng đăng nhập lại"),
+    MFA_OTP_INVALID("E19", "Mã OTP bạn đã nhập không chính xác"),
 
     ERROR_SYSTEM("1000", "Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
     UNAUTHENTICATED_TOKEN("1001", "Token is invalid. Error: {0}"),
