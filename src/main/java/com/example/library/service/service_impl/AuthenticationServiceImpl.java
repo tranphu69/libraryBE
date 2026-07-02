@@ -2,7 +2,6 @@ package com.example.library.service.service_impl;
 
 import com.example.library.constant.AppConstant;
 import com.example.library.domain.Permission;
-import com.example.library.domain.InvalidatedToken;
 import com.example.library.domain.RefreshToken;
 import com.example.library.domain.User;
 import com.example.library.dto.request.AuthenticationRequest;
@@ -17,10 +16,10 @@ import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
 import com.example.library.exception.ResourceNotFoundException;
 import com.example.library.mapper.UserMapper;
-import com.example.library.repository.InvalidatedTokenRepository;
 import com.example.library.repository.RefreshTokenRepository;
 import com.example.library.repository.UserRepository;
 import com.example.library.service.AuthenticationService;
+import com.example.library.service.RedisService;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ResponseUtils;
 import com.nimbusds.jose.*;
@@ -54,8 +53,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-    private final InvalidatedTokenRepository invalidatedTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisService redisService;
     @Value("${jwt.access-token-expiry}")
     protected long accessDuration;
     @Value("${jwt.refresh-token-expiry}")
@@ -135,7 +134,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String accessToken = generateAccessToken(user);
         String refreshToken = generateRefreshToken(user);
         RefreshToken token = refreshTokenRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_TOKEN));
+                .orElseGet(RefreshToken::new);
         token.setTokenHash(hash(refreshToken));
         token.setUser(user);
         token.setExpiresAt(Instant.now().plus(refreshDuration, ChronoUnit.SECONDS));
@@ -158,8 +157,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
         if(!(signedJWT.verify(verifier) && expiryTime.after(new Date())))
             throw new BusinessException(ErrorCode.AUTHENTICATION_TOKEN);
+        String jti = signedJWT.getJWTClaimsSet().getJWTID();
+        boolean isValid = !redisService.isBlacklisted(jti);
         IntrospectResponse response = new IntrospectResponse();
-        response.setValid(!invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()));
+        response.setValid(isValid);
         return ResponseUtils.success(response, AppConstant.SUCCESS);
     }
 
@@ -191,11 +192,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var signToken = verifyAccessToken(request.getToken());
         String jit = signToken.getJWTClaimsSet().getJWTID();
         Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
-        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .jti(jit)
-                .expiresAt(expiryTime.toInstant())
-                .build();
-        invalidatedTokenRepository.save(invalidatedToken);
+        redisService.blacklist(jit, expiryTime.toInstant());
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
         User byUsername = userRepository.findByCodeAndIsDeletedNot(name, true)
@@ -225,11 +222,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         String jitAccessToken = accessToken.getJWTClaimsSet().getJWTID();
         Date expiryTimeAccessToken = accessToken.getJWTClaimsSet().getExpirationTime();
-        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .jti(jitAccessToken)
-                .expiresAt(expiryTimeAccessToken.toInstant())
-                .build();
-        invalidatedTokenRepository.save(invalidatedToken);
+        redisService.blacklist(jitAccessToken, expiryTimeAccessToken.toInstant());
         String username = signToken.getJWTClaimsSet().getSubject();
         User user = userRepository.findByCodeAndIsDeletedNot(username, true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));

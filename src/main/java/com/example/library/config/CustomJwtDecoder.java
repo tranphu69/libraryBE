@@ -1,12 +1,11 @@
 package com.example.library.config;
 
 import com.example.library.exception.ErrorCode;
-import com.example.library.repository.InvalidatedTokenRepository;
+import com.example.library.service.RedisService;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -25,8 +24,11 @@ public class CustomJwtDecoder implements JwtDecoder {
     @Value("${jwt.access-signer-key}")
     protected String signerKey;
     private NimbusJwtDecoder nimbusJwtDecoder = null;
-    @Autowired
-    private InvalidatedTokenRepository invalidatedTokenRepository;
+    private final RedisService redisService;
+
+    public CustomJwtDecoder(RedisService redisService) {
+        this.redisService = redisService;
+    }
 
     @Override
     public Jwt decode(String token) throws JwtException {
@@ -37,7 +39,7 @@ public class CustomJwtDecoder implements JwtDecoder {
             if (!(signedJWT.verify(verifier) && expiryTime.after(new Date()))) {
                 throw new JwtException(ErrorCode.AUTHENTICATION_TOKEN.getMessage());
             }
-            if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())) {
+            if(redisService.isBlacklisted(signedJWT.getJWTClaimsSet().getJWTID())) {
                 throw new JwtException(ErrorCode.AUTHENTICATION_TOKEN.getMessage());
             }
         } catch (JOSEException | ParseException e) {

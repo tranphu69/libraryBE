@@ -19,7 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/login", "/api/authentication/introspect", "/api/authentication/refresh"};
-    private static final String[] PUBLIC_ENDPOINT_GET = {"/api/redis/ping"};
+    private static final String[] PUBLIC_ENDPOINT_GET = {"/api/redis/ping", "/api/redis/search"};
     private static final String[] AUTHENTICATED_ENDPOINT_GET = {"/api/authentication/profile"};
     private static final String[] AUTHENTICATED_ENDPOINT_POST = {"/api/authentication/logout"};
     @Autowired
