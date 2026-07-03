@@ -31,7 +31,7 @@ public class MfaServiceImpl implements MfaService {
     @Value("${jwt.otp-signer-key}")
     protected String otpSignerKey;
     private static final int OTP_LENGTH = 6;
-    private static final Duration OTP_TTL = Duration.ofMinutes(2);
+    private static final Duration OTP_TTL = Duration.ofMinutes(5);
     private static final int MAX_ATTEMPTS = 5;
     private static final String KEY_PREFIX = "mfa:otp:";
 

@@ -131,6 +131,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return AuthenticationResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .mfaRequired(user.getMfaEnabled())
                 .build();
     }
 
@@ -244,6 +245,4 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         AuthenticationResponse authenticationResponse = issueTokens(user);
         return ResponseUtils.success(authenticationResponse, AppConstant.SUCCESS);
     }
-
-
 }

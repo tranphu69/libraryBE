@@ -19,7 +19,7 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
     @Value("${spring.mail.username}")
     private String fromEmail;
-    private static final int OTP_VALID_MINUTES = 2;
+    private static final int OTP_VALID_MINUTES = 5;
 
     private String buildOtpHtml(String otp) {
         return """
