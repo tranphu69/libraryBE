@@ -59,9 +59,6 @@ public class User {
     // TRANG THAI KHOA TAI KHOAN
     @Column(name = "IS_LOCKED")
     private Boolean isLocked = false;
-    // SO LAN DANG NHAP SAI LIEN TIEP
-    @Column(name = "FAILED_LOGIN_ATTEMPTS")
-    private Integer failedLoginAttempts = 0;
     // THOI DIEM DANG NHAP CUOI CUNG
     @Column(name = "LAST_LOGIN_AT")
     private LocalDateTime lastLoginAt;

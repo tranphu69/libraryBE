@@ -22,6 +22,7 @@ import com.example.library.service.service_import_impl.UserImportImpl;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ExcelUtils;
 import com.example.library.util.ResponseUtils;
+import com.example.library.util.SecurityUtils;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -66,7 +67,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.NOT_LENGTH, UserConstant.CODE, UserConstant.CODE_LENGTH);
         } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, UserConstant.CODE);
-        } else if(userRepository.existsActiveEmail(request.getCode().trim().toUpperCase())) {
+        } else if(userRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
             throw new BusinessException(ErrorCode.NOT_DUPLICATE, UserConstant.CODE);
         }
         if(DataUtils.isBlank(request.getFullName())) {
@@ -86,12 +87,13 @@ public class UserServiceImpl implements UserService {
     public ApiResponse<UserResponse> create(UserRequest request) {
         log.info("Creating new user with code: {}", request.getCode());
         Set<String> listRoleDB = roleRepository.findAllPublicId();
-        validate(request, listRoleDB);
         if(DataUtils.isBlank(request.getPassword())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, UserConstant.PASSWORD);
-        } else if(DataUtils.maxLength(request.getPassword(), UserConstant.MAX_LENGTH_PASSWORD)) {
-            throw new BusinessException(ErrorCode.NOT_LENGTH, UserConstant.PASSWORD, UserConstant.PASSWORD_LENGTH);
+        } else if(DataUtils.passwordLength(request.getPassword(), UserConstant.MAX_LENGTH_PASSWORD,
+                UserConstant.MIN_LENGTH_PASSWORD) || SecurityUtils.isValid(request.getPassword())) {
+            throw new BusinessException(ErrorCode.NOT_PASSWORD);
         }
+        validate(request, listRoleDB);
         Set<Role> roles = new HashSet<>(
                 roleRepository.findAllOfPermissionPublicId(request.getListRole())
         );
@@ -102,6 +104,11 @@ public class UserServiceImpl implements UserService {
                 .roles(roles)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .isActive(false)
+                .isDeleted(false)
+                .isEmailVerified(false)
+                .mfaEnabled(false)
+                .isLocked(false)
                 .build();
         User saved = userRepository.save(user);
         log.info("User created successfully with id: {}", saved.getId());
@@ -270,7 +277,6 @@ public class UserServiceImpl implements UserService {
                 .roles(listRole)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .failedLoginAttempts(0)
                 .isActive(false)
                 .isDeleted(false)
                 .isEmailVerified(false)

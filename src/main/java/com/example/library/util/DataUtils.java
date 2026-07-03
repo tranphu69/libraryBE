@@ -28,6 +28,10 @@ public class DataUtils {
         return value.trim().length() > maxLength;
     }
 
+    public static boolean passwordLength(String value, int maxLength, int minLength) {
+        return value.trim().length() < minLength || value.trim().length() > maxLength;
+    }
+
     public static String strConcatenation(ErrorCode errorCode, Object... args) {
         return MessageFormat.format(errorCode.getMessage(), args);
     }

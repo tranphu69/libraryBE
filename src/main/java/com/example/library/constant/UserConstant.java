@@ -25,6 +25,7 @@ public class UserConstant {
     public static final int MAX_LENGTH_CODE = 100;
     public static final int MAX_LENGTH = 255;
     public static final int MAX_LENGTH_PASSWORD = 15;
+    public static final int MIN_LENGTH_PASSWORD = 8;
 
     public static final long MAX_FILE_SIZE = 1024L * 1024;
 }

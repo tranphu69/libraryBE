@@ -27,7 +27,7 @@ public class UserController {
     private static final String FILE_NAME = "Template_user.xlsx";
 
     @PostMapping
-    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasAuthority('TEST6')")
     public ResponseEntity<ApiResponse<UserResponse>> create(@RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.create(request));
     }
