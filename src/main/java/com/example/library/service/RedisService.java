@@ -13,4 +13,5 @@ public interface RedisService {
     <T> Optional<T> get(String key, Class<T> type);
     void delete(String key);
     Long getExpire(String key);
+    Long increment(String key, Duration ttl);
 }

@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -59,6 +60,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     protected String accessSignerKey;
     @Value("${jwt.refresh-signer-key}")
     protected String refreshSignerKey;
+    private static final String FAILED_LOGIN_PREFIX = "login:failed:";
+    private static final int MAX_ATTEMPTS = 2;
+    private static final Duration LOCK_TTL = Duration.ofMinutes(5);
 
     private String buildScope(User user) {
         return user.getRoles().stream()
@@ -138,12 +142,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public ApiResponse<AuthenticationResponse> logIn(AuthenticationRequest request) {
+        String username = request.getUsername();
+        String failedKey = FAILED_LOGIN_PREFIX + username;
+        Long attemptsSoFar = redisService.get(failedKey, Integer.class)
+                .map(Long::valueOf)
+                .orElse(0L);
+        if (attemptsSoFar >= MAX_ATTEMPTS) {
+            throw new ResourceNotFoundException(ErrorCode.ACCOUNT_LOCKED);
+        }
         User user = userRepository.findByCodeAndIsDeletedNot(request.getUsername(), true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
         if(!authenticated) {
+            long attempts = redisService.increment(failedKey, LOCK_TTL);
+            if (attempts >= MAX_ATTEMPTS) {
+                throw new ResourceNotFoundException(ErrorCode.ACCOUNT_LOCKED);
+            }
             throw new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT);
         }
+        redisService.delete(failedKey);
         if (user.getMfaEnabled()) {
             String challengeToken = mfaService.initiateOtpChallenge(user);
             AuthenticationResponse response = AuthenticationResponse.builder()

@@ -31,7 +31,8 @@ public enum ErrorCode {
     ERROR_SYSTEM("1000", "Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
     UNAUTHENTICATED_TOKEN("1001", "Token is invalid. Error: {0}"),
     UNAUTHORIZED("1002", "Bạn không có quyền truy cập tài nguyên này", HttpStatus.FORBIDDEN),
-    UNAUTHENTICATED("1003", "Bạn chưa đăng nhập hoặc token không hợp lệ", HttpStatus.UNAUTHORIZED)
+    UNAUTHENTICATED("1003", "Bạn chưa đăng nhập hoặc token không hợp lệ", HttpStatus.UNAUTHORIZED),
+    ACCOUNT_LOCKED("1004", "Tài khoản đã bị tạm khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.", HttpStatus.FORBIDDEN),
     ;
     private final String code;
     private final String message;

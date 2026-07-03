@@ -75,4 +75,11 @@ public class RedisServiceImpl implements RedisService {
     public Long getExpire(String key) {
         return redisTemplate.getExpire(key, TimeUnit.SECONDS);
     }
+
+    @Override
+    public Long increment(String key, Duration ttl) {
+        Long attempts = redisTemplate.opsForValue().increment(key);
+        redisTemplate.expire(key, ttl);
+        return attempts;
+    }
 }
