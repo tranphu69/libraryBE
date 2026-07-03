@@ -12,6 +12,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service
@@ -50,5 +52,27 @@ public class RedisServiceImpl implements RedisService {
             }
         }
         return result;
+    }
+
+    @Override
+    public void set(String key, Object value, Duration ttl) {
+        redisTemplate.opsForValue().set(key, value, ttl);
+    }
+
+    @Override
+    public <T> Optional<T> get(String key, Class<T> type) {
+        Object value = redisTemplate.opsForValue().get(key);
+        if (value == null) return Optional.empty();
+        return Optional.of(type.cast(value));
+    }
+
+    @Override
+    public void delete(String key) {
+        redisTemplate.delete(key);
+    }
+
+    @Override
+    public Long getExpire(String key) {
+        return redisTemplate.getExpire(key, TimeUnit.SECONDS);
     }
 }

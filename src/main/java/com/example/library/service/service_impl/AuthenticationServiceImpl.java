@@ -4,14 +4,8 @@ import com.example.library.constant.AppConstant;
 import com.example.library.domain.Permission;
 import com.example.library.domain.RefreshToken;
 import com.example.library.domain.User;
-import com.example.library.dto.request.AuthenticationRequest;
-import com.example.library.dto.request.IntrospectRequest;
-import com.example.library.dto.request.LogoutRequest;
-import com.example.library.dto.request.RefreshRequest;
-import com.example.library.dto.response.ApiResponse;
-import com.example.library.dto.response.AuthenticationResponse;
-import com.example.library.dto.response.IntrospectResponse;
-import com.example.library.dto.response.UserResponse;
+import com.example.library.dto.request.*;
+import com.example.library.dto.response.*;
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
 import com.example.library.exception.ResourceNotFoundException;
@@ -19,6 +13,7 @@ import com.example.library.mapper.UserMapper;
 import com.example.library.repository.RefreshTokenRepository;
 import com.example.library.repository.UserRepository;
 import com.example.library.service.AuthenticationService;
+import com.example.library.service.MfaService;
 import com.example.library.service.RedisService;
 import com.example.library.util.DataUtils;
 import com.example.library.util.ResponseUtils;
@@ -55,6 +50,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RedisService redisService;
+    private final MfaService mfaService;
     @Value("${jwt.access-token-expiry}")
     protected long accessDuration;
     @Value("${jwt.refresh-token-expiry}")
@@ -122,15 +118,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
-    @Override
-    @Transactional
-    public ApiResponse<AuthenticationResponse> logIn(AuthenticationRequest request) {
-        User user = userRepository.findByCodeAndIsDeletedNot(request.getUsername(), true)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
-        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-        if(!authenticated) {
-            throw new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT);
-        }
+    private AuthenticationResponse issueTokens(User user) {
         String accessToken = generateAccessToken(user);
         String refreshToken = generateRefreshToken(user);
         RefreshToken token = refreshTokenRepository.findByUserId(user.getId())
@@ -140,10 +128,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         token.setExpiresAt(Instant.now().plus(refreshDuration, ChronoUnit.SECONDS));
         token.setCreatedAt(LocalDateTime.now());
         refreshTokenRepository.save(token);
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
+        return AuthenticationResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .mfaRequired(user.getMfaEnabled())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<AuthenticationResponse> logIn(AuthenticationRequest request) {
+        User user = userRepository.findByCodeAndIsDeletedNot(request.getUsername(), true)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
+        boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+        if(!authenticated) {
+            throw new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT);
+        }
+        if (user.getMfaEnabled()) {
+            String challengeToken = mfaService.initiateOtpChallenge(user);
+            AuthenticationResponse response = AuthenticationResponse.builder()
+                    .mfaRequired(true)
+                    .challengeToken(challengeToken)
+                    .build();
+            return ResponseUtils.success(response, AppConstant.SUCCESS);
+        }
+        AuthenticationResponse authenticationResponse = issueTokens(user);
         return ResponseUtils.success(authenticationResponse, AppConstant.SUCCESS);
     }
 
@@ -201,6 +210,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return ResponseUtils.success(null, AppConstant.SUCCESS);
     }
 
+    @Override
+    public ApiResponse<AuthenticationResponse> verifyOtpAndLogin(VerifyOtpRequest request) {
+        User user = mfaService.verifyOtp(request.getChallengeToken(), request.getOtp());
+        AuthenticationResponse response = issueTokens(user);
+        return ResponseUtils.success(response, AppConstant.SUCCESS);
+    }
+
     private SignedJWT verifyRefreshToken(String token) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(refreshSignerKey.getBytes());
         SignedJWT signedJWT = SignedJWT.parse(token);
@@ -226,19 +242,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String username = signToken.getJWTClaimsSet().getSubject();
         User user = userRepository.findByCodeAndIsDeletedNot(username, true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_ACCOUNT));
-        String newAccessToken = generateAccessToken(user);
-        String newRefreshToken = generateRefreshToken(user);
-        RefreshToken token = refreshTokenRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHENTICATION_TOKEN));
-        token.setTokenHash(hash(newRefreshToken));
-        token.setUser(user);
-        token.setExpiresAt(Instant.now().plus(refreshDuration, ChronoUnit.SECONDS));
-        token.setCreatedAt(LocalDateTime.now());
-        refreshTokenRepository.save(token);
-        AuthenticationResponse authenticationResponse = AuthenticationResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
-                .build();
+        AuthenticationResponse authenticationResponse = issueTokens(user);
         return ResponseUtils.success(authenticationResponse, AppConstant.SUCCESS);
     }
 }
