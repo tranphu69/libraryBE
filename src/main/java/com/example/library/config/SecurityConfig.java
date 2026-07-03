@@ -1,5 +1,6 @@
 package com.example.library.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +14,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@Slf4j
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINT_POST = {"/api/authentication/login", "/api/authentication/introspect", "/api/authentication/refresh", "/api/authentication/login/verify-otp"};
     private static final String[] PUBLIC_ENDPOINT_GET = {"/api/redis/ping", "/api/redis/search"};
@@ -32,8 +39,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(request ->
-                request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT_POST).permitAll()
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(request ->
+                request.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINT_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINT_GET).permitAll()
                         .requestMatchers(HttpMethod.GET, AUTHENTICATED_ENDPOINT_GET).authenticated()
                         .requestMatchers(HttpMethod.POST, AUTHENTICATED_ENDPOINT_POST).authenticated()
@@ -44,6 +53,20 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
         http.csrf(AbstractHttpConfigurer::disable);
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+        log.info(">>> CORS allowed origins: {}", config.getAllowedOrigins());
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     @Bean
