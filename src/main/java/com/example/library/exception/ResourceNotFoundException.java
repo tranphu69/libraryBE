@@ -18,5 +18,4 @@ public class ResourceNotFoundException extends RuntimeException {
         this.errorCode = errorCode;
         this.formattedMessage = errorCode.formatMessage(args);
     }
-
 }

@@ -9,8 +9,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.text.ParseException;
+import java.util.Map;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -28,6 +30,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(ResponseUtils.error(errorCode.getCode(), ex.getFormattedMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> handleMaxSize(MaxUploadSizeExceededException e) {
+        return ResponseEntity.status(ErrorCode.LIMIT_FILE.getStatusCode())
+                .body(ResponseUtils.error(ErrorCode.LIMIT_FILE.getCode(), ErrorCode.LIMIT_FILE.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
