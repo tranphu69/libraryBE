@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
 import java.util.List;
 
@@ -60,6 +61,18 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
         http.csrf(AbstractHttpConfigurer::disable);
         http.addFilterAfter(rateLimitFilter(), BearerTokenAuthenticationFilter.class);
+        http.headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                        .policyDirectives(
+                                "default-src 'none'; " +
+                                        "frame-ancestors 'none'; " +
+                                        "base-uri 'none'"
+                        )
+                )
+                .referrerPolicy(referrer -> referrer
+                        .policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                )
+        );
         return http.build();
     }
 

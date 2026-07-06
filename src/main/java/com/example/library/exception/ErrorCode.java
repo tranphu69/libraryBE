@@ -34,6 +34,7 @@ public enum ErrorCode {
     UNAUTHORIZED("1002", "Bạn không có quyền truy cập tài nguyên này", HttpStatus.FORBIDDEN),
     UNAUTHENTICATED("1003", "Bạn chưa đăng nhập hoặc token không hợp lệ", HttpStatus.UNAUTHORIZED),
     ACCOUNT_LOCKED("1004", "Tài khoản đã bị tạm khóa do nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.", HttpStatus.FORBIDDEN),
+    LIMIT_FILE("1005", "File vượt quá kích thước cho phép.", HttpStatus.PAYLOAD_TOO_LARGE),
     ;
     private final String code;
     private final String message;

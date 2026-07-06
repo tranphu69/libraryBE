@@ -27,7 +27,7 @@ public class UserController {
     private static final String FILE_NAME = "Template_user.xlsx";
 
     @PostMapping
-    @PreAuthorize("hasAuthority('TEST6')")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<ApiResponse<UserResponse>> create(@RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.create(request));
     }
@@ -64,7 +64,7 @@ public class UserController {
     }
 
     @PostMapping("/import")
-    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasAuthority('TEST6')")
     public ResponseEntity<Object> importFile(@RequestParam MultipartFile file) {
         byte[] errorFile = userService.importFile(file);
         return ResponseEntity.ok()
