@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
 import com.example.library.domain.Permission;
@@ -83,6 +84,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_PERMISSION", targetType = "PERMISSION", targetId = "#request.id")
     public ApiResponse<PermissionResponse> create(PermissionRequest request) {
         log.info("Creating new permission with code: {}", request.getCode());
         validate(request);
@@ -102,6 +104,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_PERMISSION", targetType = "PERMISSION", targetId = "#request.id")
     public ApiResponse<PermissionResponse> update(PermissionRequest request) {
         log.info("Updating permission with id: {}", request.getId());
         Permission permission = permissionRepository.findByPublicIdAndStatusNot(request.getId(), PermissionConstant.DELETED)
@@ -120,6 +123,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_PERMISSION", targetType = "PERMISSION", targetId = "#id")
     public ApiResponse<Void> delete(String id) {
         log.info("Deleting permission with id: {}", id);
         Permission permission = permissionRepository.findByPublicIdAndStatusNot(id, PermissionConstant.DELETED)
@@ -315,11 +319,12 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
+    @Auditable(action = "IMPORT_PERMISSION", targetType = "PERMISSION", targetId = "#file.originalFilename")
     public byte[] importFile(MultipartFile file) {
         log.info("Starting import permissions from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > PermissionConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
-        if(ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+        if(ExcelUtils.isNotExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
         final byte[] fileBytes;
         try {
             fileBytes = file.getBytes();

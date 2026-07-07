@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
 import com.example.library.constant.UserConstant;
@@ -84,6 +85,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_USER", targetType = "USER", targetId = "#request.id")
     public ApiResponse<UserResponse> create(UserRequest request) {
         log.info("Creating new user with code: {}", request.getCode());
         Set<String> listRoleDB = roleRepository.findAllPublicId();
@@ -118,6 +120,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_USER", targetType = "USER", targetId = "#request.id")
     public ApiResponse<UserResponse> update(UserRequest request) {
         log.info("Updating user with id: {}", request.getId());
         User user = userRepository.findByIdAndIsDeletedNot(request.getId(), true)
@@ -141,6 +144,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_USER", targetType = "USER", targetId = "#id")
     public ApiResponse<Void> delete(String id) {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findByIdAndIsDeletedNot(id, true)
@@ -350,11 +354,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "IMPORT_USER", targetType = "USER", targetId = "#file.originalFilename")
     public byte[] importFile(MultipartFile file) {
         log.info("Starting import users from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > UserConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
-        if(ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+        if(ExcelUtils.isNotExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
         final byte[] fileBytes;
         try {
             fileBytes = file.getBytes();

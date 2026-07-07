@@ -16,9 +16,9 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public class ExcelUtils {
-    public static boolean hasExcelFormat(MultipartFile file) {
-        return !Objects.requireNonNull(file.getOriginalFilename()).endsWith(".xls") ||
-                !file.getOriginalFilename().endsWith(".xlsx");
+    public static boolean isNotExcelFormat(MultipartFile file) {
+        String fileName = Objects.requireNonNull(file.getOriginalFilename());
+        return !fileName.endsWith(".xls") && !fileName.endsWith(".xlsx");
     }
 
     public static String getCellValue(Cell cell) {
@@ -38,6 +38,17 @@ public class ExcelUtils {
             for (int i = 0; i < headerRow.getLastCellNum(); i++) {
                 Cell cell = headerRow.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                 headers.add(getCellValue(cell).trim());
+            }
+            int lastNonEmptyIndex = -1;
+            for (int i = headers.size() - 1; i >= 0; i--) {
+                if (!headers.get(i).isEmpty()) {
+                    lastNonEmptyIndex = i;
+                    break;
+                }
+            }
+            headers = headers.subList(0, lastNonEmptyIndex + 1);
+            if (headers.isEmpty()) {
+                throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
             }
             return headers;
         } catch (IOException e) {
@@ -66,7 +77,7 @@ public class ExcelUtils {
             List<String> uploadHeaders = extractHeaders(uploadIs);
             validateHeaders(templateHeaders, uploadHeaders);
         } catch(Exception e) {
-            throw new BusinessException(ErrorCode.FILE_READ_ERROR, e);
+            throw new BusinessException(ErrorCode.CHECK_TEMPLATE, e.getMessage());
         }
     }
 
