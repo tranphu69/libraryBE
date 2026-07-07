@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.domain.Permission;
 import com.example.library.domain.RefreshToken;
@@ -41,6 +42,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @Service
@@ -65,13 +68,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private static final Duration LOCK_TTL = Duration.ofMinutes(5);
 
     private String buildScope(User user) {
-        return user.getRoles().stream()
-                .flatMap(role -> role.getPermissions().stream())
-                .map(Permission::getCode)
+        return Stream.concat(
+                        user.getRoles().stream()
+                                .map(role -> "ROLE_" + role.getCode()),
+                        user.getRoles().stream()
+                                .flatMap(role -> role.getPermissions().stream())
+                                .map(Permission::getCode)
+                )
                 .distinct()
                 .sorted()
-                .reduce((a, b) -> a + " " + b)
-                .orElse("");
+                .collect(Collectors.joining(" "));
     }
 
     private String generateRefreshToken(User user) {
@@ -141,6 +147,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     @Transactional
+    @Auditable(action = "LOGIN", targetType = "AUTHENTICATION", targetId = "#request.username")
     public ApiResponse<AuthenticationResponse> logIn(AuthenticationRequest request) {
         String username = request.getUsername();
         String failedKey = FAILED_LOGIN_PREFIX + username;
@@ -211,6 +218,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     @Transactional
+    @Auditable(action = "LOGOUT", targetType = "AUTHENTICATION", targetId = "#request.token")
     public ApiResponse<Void> logout(LogoutRequest request) throws ParseException, JOSEException {
         if(DataUtils.isBlank(request.getToken())) {
             throw new BusinessException(ErrorCode.NOT_TOKEN);
@@ -228,6 +236,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
+    @Auditable(action = "VERIFY_OTP", targetType = "AUTHENTICATION", targetId = "#request.otp")
     public ApiResponse<AuthenticationResponse> verifyOtpAndLogin(VerifyOtpRequest request) {
         User user = mfaService.verifyOtp(request.getChallengeToken(), request.getOtp());
         AuthenticationResponse response = issueTokens(user);

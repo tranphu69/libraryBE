@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
 import com.example.library.constant.RoleConstant;
@@ -88,6 +89,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_ROLE", targetType = "ROLE", targetId = "#request.id")
     public ApiResponse<RoleResponse> create(RoleRequest request) {
         log.info("Creating new role with code: {}", request.getCode());
         Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
@@ -112,6 +114,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_ROLE", targetType = "ROLE", targetId = "#request.id")
     public ApiResponse<RoleResponse> update(RoleRequest request) {
         log.info("Updating role with id: {}", request.getId());
         Role role = roleRepository.findByPublicIdAndStatusNot(request.getId(), RoleConstant.DELETED)
@@ -135,6 +138,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_ROLE", targetType = "ROLE", targetId = "#id")
     public ApiResponse<Void> delete(String id) {
         log.info("Deleting role with id: {}", id);
         Role role = roleRepository.findByPublicIdAndStatusNot(id, RoleConstant.DELETED)

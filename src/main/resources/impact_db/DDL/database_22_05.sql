@@ -82,3 +82,18 @@ CREATE TABLE library.REFRESH_TOKEN (
     PRIMARY KEY (id),
     CONSTRAINT fk_refresh_token_user FOREIGN KEY (USER_ID) REFERENCES users(id) ON DELETE CASCADE
 );
+
+--create auditLogs
+CREATE TABLE library.AUDIT_LOGS (
+    ID                          CHAR(36) PRIMARY KEY,
+    TIMESTAMP                   DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    ACTOR_ID                    VARCHAR(64) NOT NULL,
+    ACTOR_ROLE                 VARCHAR(64) NOT NULL,
+    ACTOR_PERMISSIONS_SNAPSHOT  JSON NOT NULL,
+    ACTION                      VARCHAR(64) NOT NULL,
+    TARGET_TYPE                 VARCHAR(64) NOT NULL,
+    TARGET_ID                   VARCHAR(64) NOT NULL,
+    OLD_VALUE                   JSON NULL,
+	NEW_VALUE                   JSON NULL,
+    STATUS                      ENUM('SUCCESS', 'FAILED') NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

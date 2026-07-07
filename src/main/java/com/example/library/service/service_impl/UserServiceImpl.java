@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.PermissionConstant;
 import com.example.library.constant.UserConstant;
@@ -84,6 +85,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_USER", targetType = "USER", targetId = "#request.id")
     public ApiResponse<UserResponse> create(UserRequest request) {
         log.info("Creating new user with code: {}", request.getCode());
         Set<String> listRoleDB = roleRepository.findAllPublicId();
@@ -118,6 +120,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_USER", targetType = "USER", targetId = "#request.id")
     public ApiResponse<UserResponse> update(UserRequest request) {
         log.info("Updating user with id: {}", request.getId());
         User user = userRepository.findByIdAndIsDeletedNot(request.getId(), true)
@@ -141,6 +144,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_USER", targetType = "USER", targetId = "#id")
     public ApiResponse<Void> delete(String id) {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findByIdAndIsDeletedNot(id, true)

@@ -45,7 +45,7 @@ public class UserController {
     }
 
     @PostMapping("/search")
-    @PreAuthorize("hasAuthority('TEST6')")
+    @PreAuthorize("hasAuthority('USER_SEARCH')")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> search(@RequestBody UserPageRequest request) {
         return ResponseEntity.ok(userService.search(request));
     }
@@ -64,7 +64,7 @@ public class UserController {
     }
 
     @PostMapping("/import")
-    @PreAuthorize("hasAuthority('TEST6')")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<Object> importFile(@RequestParam MultipartFile file) {
         byte[] errorFile = userService.importFile(file);
         return ResponseEntity.ok()
