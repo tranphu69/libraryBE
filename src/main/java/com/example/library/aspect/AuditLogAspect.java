@@ -14,6 +14,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.lang.reflect.Method;
 
@@ -68,7 +69,7 @@ public class AuditLogAspect {
         try {
             java.util.Map<String, Object> requestMap = new java.util.LinkedHashMap<>();
             for (int i = 0; i < args.length; i++) {
-                requestMap.put(paramNames[i], args[i]);
+                requestMap.put(paramNames[i], toLoggableValue(args[i]));
             }
             return objectMapper.writeValueAsString(requestMap);
         } catch (Exception e) {
@@ -78,10 +79,35 @@ public class AuditLogAspect {
 
     private String serializeResponse(Object result) {
         try {
-            return objectMapper.writeValueAsString(result);
+            return objectMapper.writeValueAsString(toLoggableValue(result));
         } catch (Exception e) {
             return "{\"error\":\"cannot serialize response\"}";
         }
+    }
+
+    private Object toLoggableValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof MultipartFile file) {
+            java.util.Map<String, Object> meta = new java.util.LinkedHashMap<>();
+            meta.put("fileName", file.getOriginalFilename());
+            meta.put("contentType", file.getContentType());
+            meta.put("size", file.getSize());
+            return meta;
+        }
+        if (value instanceof byte[] bytes) {
+            java.util.Map<String, Object> meta = new java.util.LinkedHashMap<>();
+            meta.put("type", "binary");
+            meta.put("sizeBytes", bytes.length);
+            return meta;
+        }
+        if (value instanceof MultipartFile[] files) {
+            return java.util.Arrays.stream(files)
+                    .map(this::toLoggableValue)
+                    .toList();
+        }
+        return value;
     }
 
     private String serializeError(Throwable ex) {

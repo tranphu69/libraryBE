@@ -319,11 +319,12 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
+    @Auditable(action = "IMPORT_PERMISSION", targetType = "PERMISSION", targetId = "#file.originalFilename")
     public byte[] importFile(MultipartFile file) {
         log.info("Starting import permissions from file: {}", file != null ? file.getOriginalFilename() : "null");
         if(file == null || file.isEmpty()) throw new BusinessException(ErrorCode.NOT_FILE);
         if(file.getSize() > PermissionConstant.MAX_FILE_SIZE) throw new BusinessException(ErrorCode.OVER_CAPACITY, "5");
-        if(ExcelUtils.hasExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
+        if(ExcelUtils.isNotExcelFormat(file)) throw new BusinessException(ErrorCode.NOT_FORMAT_FILE);
         final byte[] fileBytes;
         try {
             fileBytes = file.getBytes();
