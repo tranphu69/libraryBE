@@ -13,6 +13,8 @@ public class CategoryConstant {
     public static final String UPDATED_AT = "updatedAt";
     public static final String DESC = "DESC";
 
+    public static final boolean DELETE = true;
+
     public static final int MAX_LENGTH_CODE = 100;
     public static final int MAX_LENGTH_NAME = 255;
     public static final int MAX_LENGTH_DESCRIPTION = 1000;

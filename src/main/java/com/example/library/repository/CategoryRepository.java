@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,5 +17,25 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
 
     boolean existsByIdAndIsDeletedNot(Long id, boolean isDeleted);
 
-    Optional<Category> findByIdAndStatusNot(Long id, boolean isDeleted);
+    Optional<Category> findByIdAndIsDeletedNot(Long id, boolean isDeleted);
+
+    List<Category> findAllByIsDeletedNot(boolean isDeleted);
+
+    @Query("""
+        SELECT c FROM Category c
+        WHERE (:code IS NULL OR LOWER(c.code) LIKE LOWER(CONCAT('%', :code, '%')))
+          AND (:name IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :name, '%')))
+        """)
+    List<Category> search(@Param("code") String code, @Param("name") String name);
+
+    @Query(value = """
+        WITH RECURSIVE category_ancestors AS (
+            SELECT * FROM category WHERE id IN (:ids)
+            UNION ALL
+            SELECT c.* FROM category c
+            INNER JOIN category_ancestors ca ON c.id = ca.parent_id
+        )
+        SELECT DISTINCT * FROM category_ancestors
+        """, nativeQuery = true)
+    List<Category> findAllWithAncestors(@Param("ids") List<Long> ids);
 }
