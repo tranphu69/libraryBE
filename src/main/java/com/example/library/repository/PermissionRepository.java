@@ -27,7 +27,7 @@ public interface PermissionRepository extends JpaRepository<Permission, Long>, J
     @Query("SELECT COUNT(p) > 0 FROM Permission p WHERE p.code = :code AND p.status <> -1")
     boolean existsActiveCode(@Param("code")String code);
 
-    @Query("SELECT COUNT(p) > 0 FROM Permission p WHERE p.code = :code AND p.status <> -1 AND r.publicId <> :publicId")
+    @Query("SELECT COUNT(p) > 0 FROM Permission p WHERE p.code = :code AND p.status <> -1 AND p.publicId <> :publicId")
     boolean existsActiveCodeAndNotId(@Param("code")String code, @Param("publicId")String publicId);
 
     Optional<Permission> findByPublicIdAndStatusNot(String id, Long status);

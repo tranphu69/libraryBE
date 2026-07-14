@@ -21,7 +21,7 @@ public interface UserRepository  extends JpaRepository<User, String>, JpaSpecifi
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.code = :code AND u.isDeleted <> true")
     boolean existsActiveCode(@Param("code")String code);
 
-    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.code = :code AND u.isDeleted <> true AND r.id <> :id")
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.code = :code AND u.isDeleted <> true AND u.id <> :id")
     boolean existsActiveCodeAndNotId(@Param("code")String code, @Param("id")String id);
 
     Optional<User> findByIdAndIsDeletedNot(String id, boolean isDeleted);
