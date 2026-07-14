@@ -22,6 +22,8 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -64,8 +66,6 @@ public class PermissionServiceImpl implements PermissionService {
             throw new BusinessException(ErrorCode.NOT_LENGTH, PermissionConstant.CODE, PermissionConstant.CODE_LENGTH);
         } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, PermissionConstant.CODE);
-        } else if(permissionRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
-            throw new BusinessException(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, PermissionConstant.NAME);
@@ -88,12 +88,17 @@ public class PermissionServiceImpl implements PermissionService {
     public ApiResponse<PermissionResponse> create(PermissionRequest request) {
         log.info("Creating new permission with code: {}", request.getCode());
         validate(request);
+        if(permissionRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE);
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Permission permission = Permission.builder()
                 .code(request.getCode().trim().toUpperCase())
                 .name(request.getName().trim())
                 .description(request.getDescription().trim())
                 .status(request.getStatus())
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .build();
         Permission saved = permissionRepository.save(permission);
@@ -110,10 +115,15 @@ public class PermissionServiceImpl implements PermissionService {
         Permission permission = permissionRepository.findByPublicIdAndStatusNot(request.getId(), PermissionConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, PermissionConstant.PERMISSION));
         validate(request);
+        if(permissionRepository.existsActiveCodeAndNotId(request.getCode().trim().toUpperCase(), request.getId())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, PermissionConstant.CODE);
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         permission.setCode(request.getCode().trim().toUpperCase());
         permission.setName(request.getName().trim());
         permission.setDescription(request.getDescription().trim());
         permission.setStatus(request.getStatus());
+        permission.setUpdatedBy(authentication.getName());
         permission.setUpdatedAt(LocalDateTime.now());
         permissionRepository.save(permission);
         log.info("Permission updated successfully with id: {}", permission.getId());
@@ -131,7 +141,9 @@ public class PermissionServiceImpl implements PermissionService {
         if(roleRepository.existsByPermissionId(permission.getId())) {
             throw new BusinessException(ErrorCode.NOT_DELETE, PermissionConstant.PERMISSION);
         }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         permission.setStatus(PermissionConstant.DELETED);
+        permission.setUpdatedBy(authentication.getName());
         permission.setUpdatedAt(LocalDateTime.now());
         permissionRepository.save(permission);
         return ResponseUtils.success(null, AppConstant.SUCCESS);
@@ -249,12 +261,14 @@ public class PermissionServiceImpl implements PermissionService {
 
     private void collectPermission(String code, String name, String description,
                                    Long status, List<Permission> batchInsert) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Permission permission = Permission.builder()
                 .code(code.toUpperCase())
                 .name(name)
                 .description(description)
                 .status(status)
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .build();
         batchInsert.add(permission);

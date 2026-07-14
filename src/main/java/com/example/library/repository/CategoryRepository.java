@@ -15,6 +15,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
     @Query("SELECT COUNT(c) > 0 FROM Category c WHERE c.code = :code AND c.isDeleted <> true")
     boolean existsActiveCode(@Param("code")String code);
 
+    @Query("SELECT COUNT(c) > 0 FROM Category c WHERE c.code = :code AND c.isDeleted <> true AND c.id <> :id")
+    boolean existsActiveCodeAndNotId(@Param("code")String code, @Param("id")Long id);
+
     boolean existsByIdAndIsDeletedNot(Long id, boolean isDeleted);
 
     Optional<Category> findByIdAndIsDeletedNot(Long id, boolean isDeleted);

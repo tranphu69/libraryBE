@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.CategoryConstant;
 import com.example.library.domain.Category;
@@ -17,6 +18,8 @@ import com.example.library.util.DataUtils;
 import com.example.library.util.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,8 +43,6 @@ public class CategoryServiceImpl implements CategoryService {
             throw new BusinessException(ErrorCode.NOT_LENGTH, CategoryConstant.CODE, CategoryConstant.CODE_LENGTH);
         } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, CategoryConstant.CODE);
-        } else if(categoryRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
-            throw new BusinessException(ErrorCode.NOT_DUPLICATE, CategoryConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, CategoryConstant.NAME);
@@ -76,14 +77,19 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_CATEGORY", targetType = "CATEGORY", targetId = "#request.id")
     public ApiResponse<CategoryResponse> create(CategoryRequest request) {
         log.info("Creating new category with code: {}", request.getCode());
         validate(request);
+        if(categoryRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, CategoryConstant.CODE);
+        }
         if(request.getParentId() != null && !categoryRepository.existsByIdAndIsDeletedNot(request.getParentId(), CategoryConstant.DELETE)) {
             throw new BusinessException(ErrorCode.NOT_EXIST, CategoryConstant.PARENT_CATEGORY);
         }else if (!canAddChild(request.getParentId())) {
             throw new BusinessException(ErrorCode.MAX_LEVEL, CategoryConstant.CATEGORY, MAX_LEVEL);
         }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Category category = Category.builder()
                 .code(request.getCode().trim().toUpperCase())
                 .name(request.getName().trim())
@@ -91,6 +97,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .parentId(request.getParentId())
                 .isDeleted(false)
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .build();
         Category saved = categoryRepository.save(category);
@@ -101,14 +108,20 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_CATEGORY", targetType = "CATEGORY", targetId = "#request.id")
     public ApiResponse<CategoryResponse> update(CategoryRequest request) {
         log.info("Updating category with id: {}", request.getId());
         Category category = categoryRepository.findByIdAndIsDeletedNot(request.getId(), CategoryConstant.DELETE)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, CategoryConstant.CATEGORY));
         validate(request);
+        if(categoryRepository.existsActiveCodeAndNotId(request.getCode().trim().toUpperCase(), request.getId())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, CategoryConstant.CODE);
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         category.setCode(request.getCode().trim().toUpperCase());
         category.setName(request.getName().trim());
         category.setDescription(request.getDescription().trim());
+        category.setUpdatedBy(authentication.getName());
         category.setUpdatedAt(LocalDateTime.now());
         categoryRepository.save(category);
         log.info("Category updated successfully with id: {}", category.getId());
@@ -118,11 +131,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_CATEGORY", targetType = "CATEGORY", targetId = "#id")
     public ApiResponse<Void> delete(Long id) {
         log.info("Deleting category with id: {}", id);
         Category category = categoryRepository.findByIdAndIsDeletedNot(id, CategoryConstant.DELETE)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, CategoryConstant.CATEGORY));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         category.setIsDeleted(CategoryConstant.DELETE);
+        category.setUpdatedBy(authentication.getName());
         category.setUpdatedAt(LocalDateTime.now());
         categoryRepository.save(category);
         return ResponseUtils.success(null, AppConstant.SUCCESS);

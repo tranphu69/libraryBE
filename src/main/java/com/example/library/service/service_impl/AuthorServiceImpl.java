@@ -1,5 +1,6 @@
 package com.example.library.service.service_impl;
 
+import com.example.library.aspect.Auditable;
 import com.example.library.constant.AppConstant;
 import com.example.library.constant.AuthorConstant;
 import com.example.library.domain.Author;
@@ -20,6 +21,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,8 +44,6 @@ public class AuthorServiceImpl implements AuthorService {
             throw new BusinessException(ErrorCode.NOT_LENGTH, AuthorConstant.CODE, AuthorConstant.CODE_LENGTH);
         } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, AuthorConstant.CODE);
-        } else if(authorRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
-            throw new BusinessException(ErrorCode.NOT_DUPLICATE, AuthorConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, AuthorConstant.NAME);
@@ -59,9 +60,14 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_AUTHOR", targetType = "AUTHOR", targetId = "#request.id")
     public ApiResponse<AuthorResponse> create(AuthorRequest request) {
         log.info("Creating new author with code: {}", request.getCode());
         validate(request);
+        if(authorRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, AuthorConstant.CODE);
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Author author = Author.builder()
                 .code(request.getCode().trim().toUpperCase())
                 .name(request.getName().trim())
@@ -72,6 +78,7 @@ public class AuthorServiceImpl implements AuthorService {
                 .imageUrl(request.getImageURL())
                 .isDeleted(false)
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .build();
         Author saved = authorRepository.save(author);
@@ -81,11 +88,17 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Override
+    @Transactional
+    @Auditable(action = "UPDATE_AUTHOR", targetType = "AUTHOR", targetId = "#request.id")
     public ApiResponse<AuthorResponse> update(AuthorRequest request) {
         log.info("Updating author with id: {}", request.getId());
         Author author = authorRepository.findByIdAndIsDeletedNot(request.getId(), AuthorConstant.DELETE)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, AuthorConstant.AUTHOR));
         validate(request);
+        if(authorRepository.existsActiveCodeAndNotId(request.getCode().trim().toUpperCase(), request.getId())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, AuthorConstant.CODE);
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         author.setCode(request.getCode().trim().toUpperCase());
         author.setName(request.getName().trim());
         author.setDateOfBirth(DataUtils.parseDate(request.getDateBirth()));
@@ -93,6 +106,7 @@ public class AuthorServiceImpl implements AuthorService {
         author.setNationality(request.getNationality());
         author.setBiography(request.getBiography());
         author.setImageUrl(request.getImageURL());
+        author.setUpdatedBy(authentication.getName());
         author.setUpdatedAt(LocalDateTime.now());
         authorRepository.save(author);
         log.info("Author updated successfully with id: {}", author.getId());
@@ -101,11 +115,15 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Override
+    @Transactional
+    @Auditable(action = "DELETE_AUTHOR", targetType = "AUTHOR", targetId = "#id")
     public ApiResponse<Void> delete(Long id) {
         log.info("Deleting author with id: {}", id);
         Author author = authorRepository.findByIdAndIsDeletedNot(id, AuthorConstant.DELETE)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, AuthorConstant.AUTHOR));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         author.setIsDeleted(AuthorConstant.DELETE);
+        author.setUpdatedBy(authentication.getName());
         author.setUpdatedAt(LocalDateTime.now());
         authorRepository.save(author);
         return ResponseUtils.success(null, AppConstant.SUCCESS);

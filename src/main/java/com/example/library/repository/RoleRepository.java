@@ -30,6 +30,9 @@ public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificat
     @Query("SELECT COUNT(r) > 0 FROM Role r WHERE r.code = :code AND r.status <> -1")
     boolean existsActiveCode(@Param("code")String code);
 
+    @Query("SELECT COUNT(r) > 0 FROM Role r WHERE r.code = :code AND r.status <> -1 AND r.publicId <> :publicId")
+    boolean existsActiveCodeAndNotId(@Param("code")String code, @Param("publicId")String publicId);
+
     Optional<Role> findByPublicIdAndStatusNot(String id, Long status);
 
     @Query("SELECT count(r) > 0 FROM Role r JOIN r.permissions p WHERE p.id = :permissionId AND r.status <> -1")

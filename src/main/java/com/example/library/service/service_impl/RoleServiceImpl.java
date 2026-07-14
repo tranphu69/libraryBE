@@ -24,6 +24,8 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -64,8 +66,6 @@ public class RoleServiceImpl implements RoleService {
             throw new BusinessException(ErrorCode.NOT_LENGTH, RoleConstant.CODE, RoleConstant.CODE_LENGTH);
         } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, RoleConstant.CODE);
-        } else if(roleRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
-            throw new BusinessException(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE);
         }
         if(DataUtils.isBlank(request.getName())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, RoleConstant.NAME);
@@ -94,15 +94,20 @@ public class RoleServiceImpl implements RoleService {
         log.info("Creating new role with code: {}", request.getCode());
         Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
         validate(request, listIdPermissionDB);
+        if(roleRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE);
+        }
         Set<Permission> permissions = new HashSet<>(
                 permissionRepository.findAllOfPermissionPublicId(request.getListPermission())
         );
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Role role = Role.builder()
                 .code(request.getCode().trim().toUpperCase())
                 .name(request.getName().trim())
                 .description(request.getDescription().trim())
                 .status(request.getStatus())
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .permissions(permissions)
                 .build();
@@ -121,13 +126,18 @@ public class RoleServiceImpl implements RoleService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, RoleConstant.ROLE));
         Set<String> listIdPermissionDB = permissionRepository.findAllPublicId();
         validate(request, listIdPermissionDB);
+        if(roleRepository.existsActiveCodeAndNotId(request.getCode().trim().toUpperCase(), request.getId())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, RoleConstant.CODE);
+        }
         Set<Permission> permissions = new HashSet<>(
                 permissionRepository.findAllOfPermissionPublicId(request.getListPermission())
         );
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         role.setCode(request.getCode().trim().toUpperCase());
         role.setName(request.getName().trim());
         role.setDescription(request.getDescription().trim());
         role.setStatus(request.getStatus());
+        role.setUpdatedBy(authentication.getName());
         role.setUpdatedAt(LocalDateTime.now());
         role.setPermissions(permissions);
         roleRepository.save(role);
@@ -143,7 +153,9 @@ public class RoleServiceImpl implements RoleService {
         log.info("Deleting role with id: {}", id);
         Role role = roleRepository.findByPublicIdAndStatusNot(id, RoleConstant.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, RoleConstant.ROLE));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         role.setStatus(RoleConstant.DELETED);
+        role.setUpdatedBy(authentication.getName());
         role.setUpdatedAt(LocalDateTime.now());
         roleRepository.save(role);
         return ResponseUtils.success(null, AppConstant.SUCCESS);
@@ -289,12 +301,14 @@ public class RoleServiceImpl implements RoleService {
 
     private void collectRole(String code, String name, String description,
                              Long status, List<Role> batchInsert, Set<Permission> permissions) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Role role = Role.builder()
                 .code(code.toUpperCase())
                 .name(name)
                 .description(description)
                 .status(status)
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .permissions(permissions)
                 .build();

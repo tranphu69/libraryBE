@@ -28,6 +28,8 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -68,8 +70,6 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.NOT_LENGTH, UserConstant.CODE, UserConstant.CODE_LENGTH);
         } else if(!request.getCode().matches(REGEX)) {
             throw new BusinessException(ErrorCode.CODE_CHARACTER, UserConstant.CODE);
-        } else if(userRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
-            throw new BusinessException(ErrorCode.NOT_DUPLICATE, UserConstant.CODE);
         }
         if(DataUtils.isBlank(request.getFullName())) {
             throw new BusinessException(ErrorCode.NOT_EMPTY, UserConstant.FULL_NAME);
@@ -96,15 +96,20 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.NOT_PASSWORD);
         }
         validate(request, listRoleDB);
+        if(userRepository.existsActiveCode(request.getCode().trim().toUpperCase())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, UserConstant.CODE);
+        }
         Set<Role> roles = new HashSet<>(
                 roleRepository.findAllOfPermissionPublicId(request.getListRole())
         );
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = User.builder()
                 .code(request.getCode().trim().toUpperCase())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName().trim())
                 .roles(roles)
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .isActive(false)
                 .isDeleted(false)
@@ -127,12 +132,17 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, UserConstant.USER));
         Set<String> listRoleDB = roleRepository.findAllPublicId();
         validate(request, listRoleDB);
+        if(userRepository.existsActiveCodeAndNotId(request.getCode().trim().toUpperCase(), request.getId())) {
+            throw new BusinessException(ErrorCode.NOT_DUPLICATE, UserConstant.CODE);
+        }
         Set<Role> roles = new HashSet<>(
                 roleRepository.findAllOfPermissionPublicId(request.getListRole())
         );
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         user.setCode(request.getCode().trim().toUpperCase());
         user.setFullName(request.getFullName().trim());
         user.setRoles(roles);
+        user.setUpdatedBy(authentication.getName());
         user.setUpdatedAt(LocalDateTime.now());
         user.setMfaEnabled(request.getMfaEnabled());
         user.setIsLocked(request.getIsLocked());
@@ -149,7 +159,9 @@ public class UserServiceImpl implements UserService {
         log.info("Deleting user with id: {}", id);
         User user = userRepository.findByIdAndIsDeletedNot(id, true)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOT_EXIST, UserConstant.USER));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         user.setIsDeleted(true);
+        user.setUpdatedBy(authentication.getName());
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
         log.info("User deleted successfully with id: {}", user.getId());
@@ -274,12 +286,14 @@ public class UserServiceImpl implements UserService {
 
     private void collectUser(String code, String password, String fullName,
                              List<User> batchInsert, Set<Role> listRole) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = User.builder()
                 .code(code.trim().toUpperCase())
                 .password(passwordEncoder.encode(password))
                 .fullName(fullName.trim())
                 .roles(listRole)
                 .createdAt(LocalDateTime.now())
+                .createdBy(authentication.getName())
                 .updatedAt(LocalDateTime.now())
                 .isActive(false)
                 .isDeleted(false)

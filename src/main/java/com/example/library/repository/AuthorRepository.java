@@ -16,6 +16,9 @@ public interface AuthorRepository extends JpaRepository<Author, Long>, JpaSpecif
     @Query("SELECT COUNT(a) > 0 FROM Author a WHERE a.code = :code AND a.isDeleted <> true")
     boolean existsActiveCode(@Param("code")String code);
 
+    @Query("SELECT COUNT(a) > 0 FROM Author a WHERE a.code = :code AND a.isDeleted <> true AND a.id <> :id")
+    boolean existsActiveCodeAndNotId(@Param("code")String code, @Param("id")Long id);
+
     Optional<Author> findByIdAndIsDeletedNot(Long id, boolean isDeleted);
 
     @Query("SELECT a FROM Author a WHERE " +

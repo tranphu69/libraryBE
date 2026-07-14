@@ -8,6 +8,7 @@ import com.example.library.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,21 +21,25 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('CATEGORY_CREATE')")
     public ResponseEntity<ApiResponse<CategoryResponse>> create(@RequestBody CategoryRequest request) {
         return ResponseEntity.ok(categoryService.create(request));
     }
 
     @PutMapping
+    @PreAuthorize("hasAuthority('CATEGORY_UPDATE')")
     public ResponseEntity<ApiResponse<CategoryResponse>> update(@RequestBody CategoryRequest request) {
         return ResponseEntity.ok(categoryService.update(request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('CATEGORY_DELETE')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.delete(id));
     }
 
     @PostMapping("/search")
+    @PreAuthorize("hasAuthority('CATEGORY_SEARCH')")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> search(@RequestBody CategoryPageRequest request) {
         return ResponseEntity.ok(categoryService.search(request));
     }
