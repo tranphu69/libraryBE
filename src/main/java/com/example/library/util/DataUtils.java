@@ -8,10 +8,22 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.Collection;
+import java.util.regex.Pattern;
 
 public class DataUtils {
-    private static final String EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT);
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[1-9]\\d{7,14}$");
+
+    public static boolean isValidEmail(String email) {
+        return email != null && !email.isBlank()
+                && EMAIL_PATTERN.matcher(email.trim()).matches();
+    }
+
+    public static boolean isValidPhone(String phone) {
+        return phone != null && !phone.isBlank()
+                && PHONE_PATTERN.matcher(phone.trim()).matches();
+    }
 
     public static LocalDate parseDate(String date) {
         if (date == null || date.trim().isEmpty()) {
@@ -62,10 +74,6 @@ public class DataUtils {
 
     public static boolean isEmptyList(Collection<?> collection) {
         return collection == null || collection.isEmpty();
-    }
-
-    public static boolean isValidEmail(String email) {
-        return email != null && email.matches(EMAIL_REGEX);
     }
 
     public static boolean isNumber(String value) {
