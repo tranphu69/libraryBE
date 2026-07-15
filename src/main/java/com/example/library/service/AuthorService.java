@@ -6,8 +6,6 @@ import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.AuthorResponse;
 import com.example.library.dto.response.PageResponse;
 
-import java.util.List;
-
 public interface AuthorService {
     ApiResponse<AuthorResponse> create(AuthorRequest request);
     ApiResponse<AuthorResponse> update(AuthorRequest request);
