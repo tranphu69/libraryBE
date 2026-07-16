@@ -24,7 +24,7 @@ public class Configuration {
     @Column(name = "DESCRIPTION")
     private String description;
     @Column(name = "VALUE")
-    private String value;
+    private Long value;
     @Column(name = "TYPE")
     private String type;
     @Column(name = "IS_DELETED")

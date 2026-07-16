@@ -29,6 +29,7 @@ public enum ErrorCode {
     MFA_OTP_INVALID("E19", "Mã OTP bạn đã nhập không chính xác"),
     NOT_PASSWORD("E20", "Mật khẩu phải bao gồm ít nhất 1 chữ cái viết hoa, 1 chữ cái viết thường, 1 chữ số, 1 ký tự đặc biệt và có độ dài từ 8 đến 15 ký tự"),
     MAX_LEVEL("E21", "{0} thì cây chỉ được tối đa {1} cấp"),
+    NOT_DUPLICATE_TYPE("E22", "{0} không được trùng nhau với cùng {1}"),
 
     ERROR_SYSTEM("1000", "Lỗi hệ thống, vui lòng thử lại sau", HttpStatus.INTERNAL_SERVER_ERROR),
     UNAUTHENTICATED_TOKEN("1001", "Token is invalid. Error: {0}"),
