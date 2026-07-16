@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "PUBLISHERS")
+@Table(name = "PUBLISHER")
 public class Publisher {
     @Id
     @Column(name = "ID")

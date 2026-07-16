@@ -9,6 +9,7 @@ import com.example.library.dto.request.PublisherPageRequest;
 import com.example.library.dto.request.PublisherRequest;
 import com.example.library.dto.response.ApiResponse;
 import com.example.library.dto.response.PageResponse;
+import com.example.library.dto.response.PaginationMeta;
 import com.example.library.dto.response.PublisherResponse;
 import com.example.library.exception.BusinessException;
 import com.example.library.exception.ErrorCode;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -135,6 +137,20 @@ public class PublisherServiceImpl implements PublisherService {
         Sort sort = Sort.by(Sort.Direction.fromString(request.getSortDir()), request.getSortBy());
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         Page<Publisher> page = publisherRepository.search(request.getName(), request.getAddress(), request.getEmail(), request.getPhone(), pageable);
-        return null;
+        List<PublisherResponse> content = page.getContent().stream()
+                .map(publisherMapper::toPublisherResponse).toList();
+        PaginationMeta contentPage = PaginationMeta.builder()
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+        PageResponse<PublisherResponse> result = PageResponse.<PublisherResponse>builder()
+                .content(content)
+                .pagination(contentPage)
+                .build();
+        return ResponseUtils.success(result, AppConstant.SUCCESS);
     }
 }
